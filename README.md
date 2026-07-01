@@ -6,6 +6,11 @@ App de escritorio Windows que detecta el elemento bajo el cursor y muestra infor
 
 ---
 
+## Soporte el desarrollo
+
+[![Pro](https://img.shields.io/badge/Pro-$4.99%2Fmes-2563EB?style=for-the-badge&logo=windows&logoColor=white)](https://link.mercadopago.com.mx/mimomobile)
+[![Business](https://img.shields.io/badge/Business-$9.99%2Fmes-16A34A?style=for-the-badge&logo=windows&logoColor=white)](https://link.mercadopago.com.mx/mimomobile)
+
 ## Modelo de Negocio
 
 | Tier | Precio | Features |
