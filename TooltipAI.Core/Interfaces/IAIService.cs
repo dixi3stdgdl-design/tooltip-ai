@@ -2,8 +2,17 @@ using TooltipAI.Core.Models;
 
 namespace TooltipAI.Core.Interfaces;
 
-public interface IAIService
+/// <summary>
+/// Local context enrichment service - NO external APIs.
+/// Enriches tooltip data with contextual information from UI Automation.
+/// </summary>
+public interface IContextEnricher
 {
-    Task<string?> GetContextAsync(ElementInfo element, CancellationToken ct = default);
-    Task<string?> GetDescriptionAsync(ElementInfo element, CancellationToken ct = default);
+    string GetEnrichedContext(ElementInfo element);
+    string GetFunctionHint(ElementInfo element);
+    string GetUsageContext(ElementInfo element);
+    string GetGestureHint(ElementInfo element, SoftwareCategory category);
+    string GetQualityTip(ElementInfo element, SoftwareCategory category);
+    string GetMoveGuide(ElementInfo element, SoftwareCategory category);
+    string GetDataInsight(ElementInfo element, SoftwareCategory category);
 }

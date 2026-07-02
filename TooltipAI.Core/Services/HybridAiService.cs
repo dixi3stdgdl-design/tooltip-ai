@@ -1,87 +1,91 @@
-using System.Collections.Concurrent;
 using System.Text;
-using System.Text.Json;
 using TooltipAI.Core.Interfaces;
 using TooltipAI.Core.Models;
 
 namespace TooltipAI.Core.Services;
 
-public class HybridAiService : IAIService, IDisposable
+/// <summary>
+/// Local context enricher - NO external APIs, NO cloud calls.
+/// Enriches tooltip data using only UI Automation information.
+/// All processing is local and instant (&lt;10ms).
+/// </summary>
+public class LocalContextEnricher : IContextEnricher
 {
-    private readonly AiComplexityConfig _config;
-    private readonly HttpClient _httpClient;
-    private readonly ConcurrentDictionary<string, CacheEntry> _cache = new();
-    private readonly Timer _cacheCleanupTimer;
     private readonly SoftwareCategoryClassifier _classifier = new();
 
-    public HybridAiService(AiComplexityConfig config)
+    public string GetEnrichedContext(ElementInfo element)
     {
-        _config = config;
-        _httpClient = new HttpClient { Timeout = TimeSpan.FromMilliseconds(config.ApiTimeoutMs) };
-        _cacheCleanupTimer = new Timer(CleanupCache, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+        var sb = new StringBuilder();
+
+        // Type information
+        sb.Append($"Type: {element.ControlType}");
+
+        // Class information
+        if (!string.IsNullOrEmpty(element.ClassName))
+            sb.Append($" | Class: {element.ClassName}");
+
+        // Status
+        if (element.IsEnabled)
+            sb.Append(" | Status: Enabled");
+        else
+            sb.Append(" | Status: Disabled");
+
+        // Keyboard focus
+        if (element.IsKeyboardFocusable)
+            sb.Append(" | Keyboard: Focusable");
+
+        // Help text if available
+        if (!string.IsNullOrEmpty(element.HelpText))
+            sb.Append($" | Help: {element.HelpText}");
+
+        return sb.ToString();
     }
 
-    public async Task<string?> GetContextAsync(ElementInfo element, CancellationToken ct = default)
+    public string GetFunctionHint(ElementInfo element)
     {
-        var complexity = DetermineComplexity(element);
+        var controlType = element.ControlType?.ToLower() ?? "";
 
-        if (complexity.Level == AiComplexityLevel.None)
-            return null;
-
-        var cacheKey = $"ctx_{element.AutomationId}_{element.Name}";
-        if (_cache.TryGetValue(cacheKey, out var cached) && !cached.IsExpired)
-            return cached.Value;
-
-        string? result = null;
-
-        if (complexity.RequiresCloudApi && _config.EnableCloudApi)
+        return controlType switch
         {
-            result = await GetCloudContextAsync(element, ct);
-        }
-        else
-        {
-            result = GetLocalContext(element);
-        }
-
-        if (result is not null)
-        {
-            _cache[cacheKey] = new CacheEntry
-            {
-                Value = result,
-                Expiration = DateTime.UtcNow.AddMinutes(_config.CacheExpirationMinutes)
-            };
-        }
-
-        return result;
+            "button" => "Interactive button - click to activate",
+            "edit" => "Text input field - type to enter data",
+            "text" => "Static text display - read only",
+            "hyperlink" => "Clickable link - click to navigate",
+            "image" => "Image element - click for details",
+            "slider" => "Value slider - drag to adjust",
+            "checkbox" => "Toggle checkbox - click to change state",
+            "combobox" => "Dropdown menu - click to expand options",
+            "listitem" => "List item - click to select",
+            "treeitem" => "Tree item - click to expand",
+            "tab" => "Tab control - click to switch view",
+            "menu" => "Menu item - click to open",
+            "toolbar" => "Toolbar - contains action buttons",
+            "scrollbar" => "Scrollbar - drag to scroll content",
+            "progress" => "Progress indicator - shows loading status",
+            "statusbar" => "Status bar - shows system information",
+            _ => $"UI Element: {element.ControlType}"
+        };
     }
 
-    public async Task<string?> GetDescriptionAsync(ElementInfo element, CancellationToken ct = default)
+    public string GetUsageContext(ElementInfo element)
     {
-        var cacheKey = $"desc_{element.AutomationId}_{element.Name}";
-        if (_cache.TryGetValue(cacheKey, out var cached) && !cached.IsExpired)
-            return cached.Value;
+        if (!string.IsNullOrEmpty(element.HelpText))
+            return element.HelpText;
 
-        string? result = null;
-
-        if (_config.EnableCloudApi)
+        var category = _classifier.Classify(element);
+        return category switch
         {
-            result = await GetCloudDescriptionAsync(element, ct);
-        }
-        else
-        {
-            result = GetLocalDescription(element);
-        }
-
-        if (result is not null)
-        {
-            _cache[cacheKey] = new CacheEntry
-            {
-                Value = result,
-                Expiration = DateTime.UtcNow.AddMinutes(_config.CacheExpirationMinutes)
-            };
-        }
-
-        return result;
+            SoftwareCategory.Audio => "Audio processing element",
+            SoftwareCategory.Creative => "Design/creative tool",
+            SoftwareCategory.Development => "Development tool",
+            SoftwareCategory.Terminal => "Command-line interface",
+            SoftwareCategory.Browser => "Web browser element",
+            SoftwareCategory.Video => "Video/media element",
+            SoftwareCategory.Gaming => "Gaming interface",
+            SoftwareCategory.Office => "Office productivity",
+            SoftwareCategory.Security => "Security-related element",
+            _ => "Standard UI element"
+        };
     }
 
     public string GetGestureHint(ElementInfo element, SoftwareCategory category)
@@ -209,157 +213,5 @@ public class HybridAiService : IAIService, IDisposable
             "text" => "Static content",
             _ => "Element active"
         };
-    }
-
-    private AiComplexityResult DetermineComplexity(ElementInfo element)
-    {
-        var result = new AiComplexityResult
-        {
-            CacheKey = $"{element.AutomationId}_{element.Name}"
-        };
-
-        if (string.IsNullOrEmpty(element.Name) && string.IsNullOrEmpty(element.HelpText))
-        {
-            result.Level = AiComplexityLevel.None;
-            result.RequiresCloudApi = false;
-            return result;
-        }
-
-        if (!string.IsNullOrEmpty(element.HelpText))
-        {
-            result.Level = AiComplexityLevel.Basic;
-            result.LocalContext = element.HelpText;
-            result.RequiresCloudApi = false;
-            return result;
-        }
-
-        if (!string.IsNullOrEmpty(element.Name) && element.Name.Length > 3)
-        {
-            result.Level = AiComplexityLevel.Standard;
-            result.RequiresCloudApi = true;
-            return result;
-        }
-
-        result.Level = AiComplexityLevel.Complex;
-        result.RequiresCloudApi = true;
-        return result;
-    }
-
-    public string GetLocalContext(ElementInfo element)
-    {
-        var sb = new StringBuilder();
-        sb.Append($"Type: {element.ControlType}");
-
-        if (!string.IsNullOrEmpty(element.ClassName))
-            sb.Append($" | Class: {element.ClassName}");
-
-        if (element.IsEnabled)
-            sb.Append(" | Status: Enabled");
-        else
-            sb.Append(" | Status: Disabled");
-
-        if (element.IsKeyboardFocusable)
-            sb.Append(" | Keyboard: Focusable");
-
-        return sb.ToString();
-    }
-
-    public string GetLocalDescription(ElementInfo element)
-    {
-        return element.ControlType switch
-        {
-            "Button" => "Interactive button element",
-            "Edit" => "Text input field",
-            "Text" => "Static text display",
-            "Hyperlink" => "Clickable link",
-            "Image" => "Image element",
-            _ => $"UI Element: {element.ControlType}"
-        };
-    }
-
-    private async Task<string?> GetCloudContextAsync(ElementInfo element, CancellationToken ct)
-    {
-        try
-        {
-            var prompt = $"Describe what this UI element does: Name='{element.Name}', Type='{element.ControlType}', ClassName='{element.ClassName}'";
-            var response = await CallCloudApiAsync(prompt, ct);
-            return response;
-        }
-        catch
-        {
-            return GetLocalContext(element);
-        }
-    }
-
-    private async Task<string?> GetCloudDescriptionAsync(ElementInfo element, CancellationToken ct)
-    {
-        try
-        {
-            var prompt = $"Give a brief description of this UI element: {element.Name} ({element.ControlType})";
-            var response = await CallCloudApiAsync(prompt, ct);
-            return response;
-        }
-        catch
-        {
-            return GetLocalDescription(element);
-        }
-    }
-
-    private async Task<string?> CallCloudApiAsync(string prompt, CancellationToken ct)
-    {
-        if (string.IsNullOrEmpty(_config.ApiEndpoint) || string.IsNullOrEmpty(_config.ApiKey))
-            return null;
-
-        var modelName = _config.ModelName ?? "gpt-3.5-turbo";
-
-        var request = new
-        {
-            model = modelName,
-            messages = new[]
-            {
-                new { role = "user", content = prompt }
-            },
-            max_tokens = 100
-        };
-
-        var json = JsonSerializer.Serialize(request);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
-        content.Headers.Add("Authorization", $"Bearer {_config.ApiKey}");
-
-        var response = await _httpClient.PostAsync(_config.ApiEndpoint, content, ct);
-        response.EnsureSuccessStatusCode();
-
-        var responseJson = await response.Content.ReadAsStringAsync(ct);
-        using var doc = JsonDocument.Parse(responseJson);
-        return doc.RootElement
-            .GetProperty("choices")[0]
-            .GetProperty("message")
-            .GetProperty("content")
-            .GetString();
-    }
-
-    private void CleanupCache(object? state)
-    {
-        var now = DateTime.UtcNow;
-        foreach (var key in _cache.Keys)
-        {
-            if (_cache.TryGetValue(key, out var entry) && entry.IsExpired)
-            {
-                _cache.TryRemove(key, out _);
-            }
-        }
-    }
-
-    public void Dispose()
-    {
-        _httpClient?.Dispose();
-        _cacheCleanupTimer?.Dispose();
-    }
-
-    private class CacheEntry
-    {
-        public string? Value { get; set; }
-        public DateTime Expiration { get; set; }
-        public bool IsExpired => DateTime.UtcNow > Expiration;
     }
 }

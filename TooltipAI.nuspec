@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>tooltip-ai</id>
+    <version>1.0.0</version>
+    <title>Tooltip AI</title>
+    <authors>Octavio Garcia</authors>
+    <owners>dixi3stdgdl-design</owners>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <license type="expression">MIT</license>
+    <projectUrl>https://github.com/dixi3stdgdl-design/tooltip-ai</projectUrl>
+    <projectSourceUrl>https://github.com/dixi3stdgdl-design/tooltip-ai</projectSourceUrl>
+    <docsUrl>https://github.com/dixi3stdgdl-design/tooltip-ai/blob/main/README.md</docsUrl>
+    <bugTrackerUrl>https://github.com/dixi3stdgdl-design/tooltip-ai/issues</bugTrackerUrl>
+    <iconUrl>https://raw.githubusercontent.com/dixi3stdgdl-design/tooltip-ai/main/icon.png</iconUrl>
+    <tags>tooltip ai windows productivity machine-learning</tags>
+    <summary>AI-powered contextual tooltip overlay for Windows</summary>
+    <description>
+Tooltip AI enhances native Windows tooltips with AI-powered contextual information.
+
+Features:
+- Real-time AI analysis of UI elements
+- Color-coded tooltips by software category (Audio, Creative, Dev, Browser, etc.)
+- Gesture hints and quality tips
+- Live data visualizations (waveform, spectrum, CV routing)
+- Minimal resource usage (< 2% CPU, < 30MB RAM)
+- 14-day free trial included
+
+Supports: Ableton, FL Studio, VS Code, Chrome, Firefox, Blender, Photoshop, and 100+ applications.
+    </description>
+    <releaseNotes>Initial release - v1.0.0</releaseNotes>
+  </metadata>
+  <files>
+    <file src="publish\**\*" target="tools\" />
+    <file src="tools\chocolateyinstall.ps1" target="tools\" />
+    <file src="tools\chocolateyuninstall.ps1" target="tools\" />
+  </files>
+</package>
