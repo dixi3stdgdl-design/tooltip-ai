@@ -17,3 +17,16 @@ public interface IContextEnricher
     string GetMoveGuide(Models.ElementInfo element, SoftwareCategory category);
     string GetDataInsight(Models.ElementInfo element, SoftwareCategory category);
 }
+
+/// <summary>
+/// AI service interface for backward compatibility.
+/// </summary>
+public interface IAIService
+{
+    string GetLocalContext(Models.ElementInfo element);
+    string GetLocalDescription(Models.ElementInfo element);
+    string GetGestureHint(Models.ElementInfo element, SoftwareCategory category);
+    string GetQualityTip(Models.ElementInfo element, SoftwareCategory category);
+    string GetMoveGuide(Models.ElementInfo element, SoftwareCategory category);
+    string GetDataInsight(Models.ElementInfo element, SoftwareCategory category);
+}

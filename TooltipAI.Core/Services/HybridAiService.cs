@@ -216,3 +216,18 @@ public class LocalContextEnricher : IContextEnricher
         };
     }
 }
+
+/// <summary>
+/// Hybrid AI service - wraps LocalContextEnricher for backward compatibility.
+/// </summary>
+public class HybridAiService : IAIService
+{
+    private readonly LocalContextEnricher _enricher = new();
+
+    public string GetLocalContext(ElementInfo element) => _enricher.GetEnrichedContext(element);
+    public string GetLocalDescription(ElementInfo element) => _enricher.GetFunctionHint(element);
+    public string GetGestureHint(ElementInfo element, SoftwareCategory category) => _enricher.GetGestureHint(element, category);
+    public string GetQualityTip(ElementInfo element, SoftwareCategory category) => _enricher.GetQualityTip(element, category);
+    public string GetMoveGuide(ElementInfo element, SoftwareCategory category) => _enricher.GetMoveGuide(element, category);
+    public string GetDataInsight(ElementInfo element, SoftwareCategory category) => _enricher.GetDataInsight(element, category);
+}

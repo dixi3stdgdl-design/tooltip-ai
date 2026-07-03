@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Hosting;
 using TooltipAI.Core.Interfaces;
 using TooltipAI.Core.Services;
+using TooltipAI.Core.Plugins;
 using TooltipAI.Service.Services;
 
 namespace TooltipAI.Service.Workers;
@@ -15,7 +16,7 @@ public class MouseMonitorWorkerService : IHostedService
     private readonly NamedPipeService _pipeService;
     private readonly MultiMonitorService _multiMonitor;
     private readonly LoggingService _logger;
-    private readonly IAIService _aiService;
+    private readonly HybridAiService _aiService;
     private readonly PluginLoader _plugins;
     private MouseMonitorWorker? _worker;
 
@@ -24,7 +25,7 @@ public class MouseMonitorWorkerService : IHostedService
         NamedPipeService pipeService,
         MultiMonitorService multiMonitor,
         LoggingService logger,
-        IAIService aiService,
+        HybridAiService aiService,
         PluginLoader plugins)
     {
         _uiaService = uiaService;
@@ -42,7 +43,7 @@ public class MouseMonitorWorkerService : IHostedService
 
         _worker = new MouseMonitorWorker(
             _uiaService, _pipeService, _multiMonitor, _logger,
-            (HybridAiService)_aiService);
+            _aiService);
         _worker.Start();
 
         Console.WriteLine("[SERVICE] Mouse worker started");

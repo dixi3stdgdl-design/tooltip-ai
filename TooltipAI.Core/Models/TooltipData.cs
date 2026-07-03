@@ -14,6 +14,10 @@ public class TooltipData
     public string? UsageContext { get; set; }
     public bool HasEnrichedContext => !string.IsNullOrEmpty(EnrichedContext);
 
+    // AI context fields (used by MouseMonitorWorker)
+    public string? AiContext { get; set; }
+    public string? AiDescription { get; set; }
+
     // Software classification (local, no API)
     public string? SoftwareCategory { get; set; }
     public string? CategoryLabel { get; set; }
