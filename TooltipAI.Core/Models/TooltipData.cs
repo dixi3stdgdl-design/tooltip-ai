@@ -27,6 +27,7 @@ public class TooltipData
     public string? QualityTip { get; set; }
     public string? MoveGuide { get; set; }
     public string? DataInsight { get; set; }
+    public string? ActionHint { get; set; }
 
     // Window context (from UI Automation)
     public string? ProcessName { get; set; }

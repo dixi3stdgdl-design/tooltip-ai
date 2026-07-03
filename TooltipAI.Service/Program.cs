@@ -22,18 +22,7 @@ builder.Services.AddSingleton<IUIAutomationService, UIAutomationService>();
 builder.Services.AddSingleton<NamedPipeService>();
 builder.Services.AddSingleton<UpdateService>();
 
-builder.Services.AddSingleton<IAIService>(sp =>
-{
-    var config = new AiComplexityConfig
-    {
-        DefaultLevel = AiComplexityLevel.Basic,
-        EnableCloudApi = false,
-        ApiTimeoutMs = 3000,
-        CacheExpirationMinutes = 5,
-        MaxCacheSize = 1000
-    };
-    return new HybridAiService(config);
-});
+builder.Services.AddSingleton<IAIService, HybridAiService>();
 
 // Register plugin loader
 builder.Services.AddSingleton(sp =>
