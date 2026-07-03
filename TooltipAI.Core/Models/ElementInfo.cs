@@ -9,5 +9,7 @@ public class ElementInfo
     public bool IsEnabled { get; set; }
     public bool IsKeyboardFocusable { get; set; }
     public string ClassName { get; set; } = string.Empty;
+    public string WindowTitle { get; set; } = string.Empty;
+    public string ProcessName { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 }

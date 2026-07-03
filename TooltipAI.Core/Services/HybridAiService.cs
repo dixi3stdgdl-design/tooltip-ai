@@ -73,7 +73,7 @@ public class LocalContextEnricher : IContextEnricher
         if (!string.IsNullOrEmpty(element.HelpText))
             return element.HelpText;
 
-        var category = _classifier.Classify(element);
+        var category = _classifier.Classify(element.ClassName, element.WindowTitle, element.ProcessName);
         return category switch
         {
             SoftwareCategory.Audio => "Audio processing element",

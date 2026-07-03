@@ -35,4 +35,12 @@ public class TooltipData
 
     // Visual type for renderer dispatch
     public int VisualType { get; set; }
+
+    // Visualization data
+    public float[]? WaveformData { get; set; }
+    public float[]? SpectrumData { get; set; }
+    public string? ModuleName { get; set; }
+    public string? ParameterName { get; set; }
+    public string? CVSource { get; set; }
+    public string? CVTarget { get; set; }
 }
