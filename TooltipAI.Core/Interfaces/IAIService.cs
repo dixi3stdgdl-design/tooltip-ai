@@ -1,4 +1,5 @@
 using TooltipAI.Core.Models;
+using TooltipAI.Core.Services;
 
 namespace TooltipAI.Core.Interfaces;
 
@@ -8,11 +9,11 @@ namespace TooltipAI.Core.Interfaces;
 /// </summary>
 public interface IContextEnricher
 {
-    string GetEnrichedContext(ElementInfo element);
-    string GetFunctionHint(ElementInfo element);
-    string GetUsageContext(ElementInfo element);
-    string GetGestureHint(ElementInfo element, SoftwareCategory category);
-    string GetQualityTip(ElementInfo element, SoftwareCategory category);
-    string GetMoveGuide(ElementInfo element, SoftwareCategory category);
-    string GetDataInsight(ElementInfo element, SoftwareCategory category);
+    string GetEnrichedContext(Models.ElementInfo element);
+    string GetFunctionHint(Models.ElementInfo element);
+    string GetUsageContext(Models.ElementInfo element);
+    string GetGestureHint(Models.ElementInfo element, SoftwareCategory category);
+    string GetQualityTip(Models.ElementInfo element, SoftwareCategory category);
+    string GetMoveGuide(Models.ElementInfo element, SoftwareCategory category);
+    string GetDataInsight(Models.ElementInfo element, SoftwareCategory category);
 }
