@@ -7,12 +7,10 @@ COPY TooltipAI.Backend/TooltipAI.Backend.csproj ./TooltipAI.Backend/
 RUN dotnet restore TooltipAI.Backend/TooltipAI.Backend.csproj
 
 COPY TooltipAI.Backend/ ./TooltipAI.Backend/
-RUN dotnet publish TooltipAI.Backend/TooltipAI.Backend.csproj -c Release -o /app/publish --no-restore
+RUN dotnet publish TooltipAI.Backend/TooltipAI.Backend.csproj -c Release -r linux-x64 --self-contained -o /app/publish --no-restore
 
-# Final stage — Azure Linux 4
+# Final stage — Azure Linux 4 (minimal, no .NET runtime needed for self-contained)
 FROM mcr.microsoft.com/azurelinux-beta/base/core:4.0 AS final
-
-RUN tdnf install -y aspnetcore-runtime-8.0 curl && tdnf clean all
 
 RUN groupadd -r tooltipai && useradd -r -g tooltipai -d /app -s /sbin/nologin tooltipai
 
@@ -32,4 +30,4 @@ ENV DOTNET_RUNNING_IN_CONTAINER=true
 HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
     CMD curl -f http://localhost:8080/health || exit 1
 
-ENTRYPOINT ["dotnet", "TooltipAI.Backend.dll"]
+ENTRYPOINT ["./TooltipAI.Backend"]
