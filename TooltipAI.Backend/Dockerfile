@@ -1,33 +1,25 @@
-# Azure Linux 4 base — Microsoft-signed, supply chain secure
-FROM mcr.microsoft.com/azurelinux-beta/base/core:4.0 AS base
-
-# Install .NET 8 runtime from Microsoft repo
-RUN tdnf install -y dotnet-runtime-8.0 aspnetcore-runtime-8.0 && \
-    tdnf clean all
-
-# Create non-root user
-RUN groupadd -r tooltipai && useradd -r -g tooltipai -d /app -s /sbin/nologin tooltipai
-
-WORKDIR /app
-
 # Build stage
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_VERSION=1.0.0
 WORKDIR /src
 
-COPY ["TooltipAI.Backend.csproj", "."]
-RUN dotnet restore
+COPY TooltipAI.Backend/TooltipAI.Backend.csproj ./TooltipAI.Backend/
+RUN dotnet restore TooltipAI.Backend/TooltipAI.Backend.csproj
 
-COPY . .
-RUN dotnet publish -c Release -o /app/publish --no-restore
+COPY TooltipAI.Backend/ ./TooltipAI.Backend/
+RUN dotnet publish TooltipAI.Backend/TooltipAI.Backend.csproj -c Release -o /app/publish --no-restore
 
 # Final stage — Azure Linux 4
-FROM base AS final
+FROM mcr.microsoft.com/azurelinux-beta/base/core:4.0 AS final
 
+RUN tdnf install -y aspnetcore-runtime-8.0 curl && tdnf clean all
+
+RUN groupadd -r tooltipai && useradd -r -g tooltipai -d /app -s /sbin/nologin tooltipai
+
+WORKDIR /app
 COPY --from=build /app/publish .
 
-# Build version label
-ARG BUILD_VERSION
+ARG BUILD_VERSION=1.0.0
 LABEL version="${BUILD_VERSION}"
 
 RUN chown -R tooltipai:tooltipai /app
