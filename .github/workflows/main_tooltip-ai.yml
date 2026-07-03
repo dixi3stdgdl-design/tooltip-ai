@@ -9,7 +9,6 @@ on:
 env:
   DOTNET_VERSION: '8.0.x'
   AZURE_WEBAPP_NAME: 'tooltip-ai'
-  AZURE_RESOURCE_GROUP: 'dixi3stdgdl-design'  # <-- ajustar si tu RG tiene otro nombre
 
 jobs:
   # ─── FASE 1: Build + Test ────────────────────────────────────
@@ -26,32 +25,23 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Restore dependencies
-        run: dotnet restore
+      - name: Restore backend
+        run: dotnet restore TooltipAI.Backend/TooltipAI.Backend.csproj
 
-      - name: Build solution
-        run: dotnet build --configuration Release --no-restore
+      - name: Build backend
+        run: dotnet build TooltipAI.Backend/TooltipAI.Backend.csproj -c Release --no-restore
 
       - name: Run tests
-        run: dotnet test --configuration Release --verbosity normal --no-build
+        run: dotnet test TooltipAI.Tests/TooltipAI.Tests.csproj -c Release --verbosity normal
 
-      - name: Publish backend (ASP.NET Core)
+      - name: Publish backend
         run: dotnet publish TooltipAI.Backend/TooltipAI.Backend.csproj -c Release -o ${{ github.workspace }}/publish-backend --no-build
-
-      - name: Publish desktop client (Windows)
-        run: dotnet publish TooltipAI.Tray/TooltipAI.Tray.csproj -c Release -r win-x64 --self-contained false -o ${{ github.workspace }}/publish-desktop --no-build
 
       - name: Upload backend artifact
         uses: actions/upload-artifact@v4
         with:
           name: backend-publish
           path: ${{ github.workspace }}/publish-backend
-
-      - name: Upload desktop artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: desktop-publish
-          path: ${{ github.workspace }}/publish-desktop
 
   # ─── FASE 2: Docker build (Azure Linux 4) ───────────────────
   docker:
@@ -101,7 +91,7 @@ jobs:
           name: docker-image
           path: /tmp/tooltipai-backend.tar.gz
 
-  # ─── FASE 3: Deploy to Azure Web App ────────────────────────
+  # ─── FASE 3: Deploy + Domain + SSL ──────────────────────────
   deploy:
     runs-on: ubuntu-latest
     needs: docker
@@ -126,10 +116,55 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_9EEC63FAF6F244E7896E2879019989BC }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_87A5E93DC4384FD192D1298AEEB4D9C7 }}
 
-      - name: Load Docker image
+      - name: Install Azure CLI
+        run: |
+          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+
+      - name: Get Web App info
+        id: webapp-info
+        run: |
+          RG=$(az webapp list --query "[?name=='${{ env.AZURE_WEBAPP_NAME }}'].resourceGroup" -o tsv)
+          echo "resource_group=$RG" >> $GITHUB_OUTPUT
+          IP=$(az webapp show -g "$RG" -n "${{ env.AZURE_WEBAPP_NAME }}" --query "outboundIpAddresses" -o tsv | cut -d',' -f1)
+          echo "outbound_ip=$IP" >> $GITHUB_OUTPUT
+          echo "Resource Group: $RG"
+          echo "Outbound IP: $IP"
+
+      - name: Configure custom domain + SSL
+        run: |
+          RG="${{ steps.webapp-info.outputs.resource_group }}"
+          APP="${{ env.AZURE_WEBAPP_NAME }}"
+          HOSTNAME="api.tooltip-ai.com"
+          CERT_NAME="tooltipai-prod-cert"
+
+          echo "[1/5] Adding custom domain: $HOSTNAME"
+          az webapp config hostname add -g "$RG" --webapp-name "$APP" --hostname "$HOSTNAME" 2>/dev/null || echo "  (already added)"
+
+          echo "[2/5] Creating managed SSL certificate..."
+          az webapp config ssl create -g "$RG" -n "$APP" --hostname "$HOSTNAME" --cert-name "$CERT_NAME" 2>/dev/null || echo "  (already exists)"
+
+          echo "[3/5] Binding SSL certificate..."
+          THUMB=$(az webapp config ssl list -g "$RG" -n "$APP" --query "[?name=='$CERT_NAME'].thumbprint" -o tsv 2>/dev/null)
+          if [ -n "$THUMB" ]; then
+            az webapp config ssl bind -g "$RG" -n "$APP" --certificate-thumbnail-thumbprint "$THUMB" --hostname "$HOSTNAME" --ssl-type SNI
+            echo "  SSL bound (thumbprint: ${THUMB:0:12}...)"
+          else
+            echo "  WARNING: Could not get thumbprint"
+          fi
+
+          echo "[4/5] Enforcing HTTPS + TLS 1.2..."
+          az webapp update -g "$RG" -n "$APP" --set httpsOnly=true
+          az webapp config set -g "$RG" -n "$APP" --min-tls-version 1.2
+
+          echo "[5/5] Done! DNS record still needed at registrar."
+          echo ""
+          echo "DNS Record:"
+          echo "  Type: CNAME | Host: api | Value: $APP.azurewebsites.net | TTL: 3600"
+
+      - name: Load and deploy Docker image
         run: docker load < tooltipai-backend.tar.gz
 
-      - name: Deploy to Azure Web App (container)
+      - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
@@ -138,29 +173,32 @@ jobs:
 
       - name: Verify deployment
         run: |
-          echo "Waiting for deployment to stabilize..."
-          sleep 15
-          echo "=== Health Check (Azure) ==="
-          curl -sf https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/health || echo "Warning: health check may take a moment"
-          echo ""
+          echo "Waiting for deployment..."
+          sleep 20
+          echo "=== Health Check (Azure default) ==="
+          curl -sf https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/health && echo "" || echo "Still starting..."
           echo "=== Health Check (Custom Domain) ==="
-          curl -sf https://api.tooltip-ai.com/health || echo "Warning: DNS may not be configured yet"
+          curl -sf https://api.tooltip-ai.com/health && echo "" || echo "DNS not propagated yet"
 
-      - name: Configure custom domain
+      - name: Print summary
         run: |
-          echo "=== Custom Domain Setup ==="
-          echo "Run locally with Azure CLI:"
-          echo ""
-          echo "  az webapp config hostname add \\"
-          echo "    --webapp-name ${{ env.AZURE_WEBAPP_NAME }} \\"
-          echo "    --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \\"
-          echo "    --hostname api.tooltip-ai.com"
-          echo ""
-          echo "DNS Record needed at your registrar:"
-          echo "  Type: CNAME"
-          echo "  Host: api"
-          echo "  Value: ${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net"
-          echo "  TTL: 3600"
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Item | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend URL | https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net |" >> $GITHUB_STEP_SUMMARY
+          echo "| Custom Domain | https://api.tooltip-ai.com (after DNS) |" >> $GITHUB_STEP_SUMMARY
+          echo "| SSL | Managed by Azure |" >> $GITHUB_STEP_SUMMARY
+          echo "| Resource Group | ${{ steps.webapp-info.outputs.resource_group }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Outbound IP | ${{ steps.webapp-info.outputs.outbound_ip }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### DNS Setup Required" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "Type: CNAME" >> $GITHUB_STEP_SUMMARY
+          echo "Host: api" >> $GITHUB_STEP_SUMMARY
+          echo "Value: ${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net" >> $GITHUB_STEP_SUMMARY
+          echo "TTL: 3600" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
   # ─── FASE 4: Create GitHub Release ──────────────────────────
   release:
@@ -173,29 +211,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download desktop artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: desktop-publish
-          path: ./desktop
-
-      - name: Create zip
-        run: cd desktop && zip -r ../TooltipAI-Desktop-win-x64.zip .
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v1.0.0-${{ github.run_number }}
           name: "TooltipAI v1.0.0 (Build ${{ github.run_number }})"
           body: |
-            ## Backend
-            - Deployed to Azure Web App (Azure Linux 4)
+            ## Backend (Azure Linux 4)
+            - Deployed to Azure Web App
             - API: https://api.tooltip-ai.com
             - Health: https://api.tooltip-ai.com/health
+            - SSL: Managed by Azure (auto-renewed)
 
-            ## Desktop Client
-            - Windows x64 build included
-            - .NET 8 runtime required
-          files: TooltipAI-Desktop-win-x64.zip
+            ## Endpoints
+            - `POST /api/license/validate` — License validation
+            - `GET /api/plugins` — Plugin registry
+            - `GET /api/context/{key}` — Context cache
+            - `GET /health` — Health check
           draft: false
           prerelease: false
