@@ -1,51 +1,28 @@
 namespace TooltipAI.Backend.Models;
 
-public record LicenseRequest(
-    string MachineId,
-    string LicenseKey,
-    string AppVersion
-);
+public sealed class LicenseValidateRequest
+{
+    public string LicenseKey { get; init; } = string.Empty;
+    public string MachineId { get; init; } = string.Empty;
+    public string AppVersion { get; init; } = string.Empty;
+}
 
-public record LicenseResponse(
-    bool Valid,
-    string? LicenseId,
-    DateTime? ExpiryDate,
-    string? Plan,
-    int DailyRequestsRemaining,
-    string Message
-);
+public sealed class LicenseValidateResponse
+{
+    public bool Valid { get; init; }
+    public string Tier { get; init; } = string.Empty;
+    public DateTime? ExpiresAt { get; init; }
+    public string? Error { get; init; }
+    public int DaysRemaining { get; init; }
+}
 
-public record LicenseInfo
+public sealed class LicenseInfo
 {
     public string LicenseId { get; init; } = string.Empty;
-    public string MachineId { get; init; } = string.Empty;
     public string LicenseKey { get; init; } = string.Empty;
-    public string Plan { get; init; } = "free";
+    public string Tier { get; init; } = string.Empty;
     public DateTime CreatedAt { get; init; }
-    public DateTime ExpiryDate { get; init; }
-    public int DailyRequestLimit { get; init; }
+    public DateTime ExpiresAt { get; init; }
+    public string MachineId { get; init; } = string.Empty;
     public bool IsActive { get; init; }
-}
-
-public record PluginManifest
-{
-    public string Id { get; init; } = string.Empty;
-    public string Name { get; init; } = string.Empty;
-    public string Version { get; init; } = string.Empty;
-    public string Description { get; init; } = string.Empty;
-    public string Author { get; init; } = string.Empty;
-    public string DownloadUrl { get; init; } = string.Empty;
-    public string Hash { get; init; } = string.Empty;
-    public DateTime PublishedAt { get; init; }
-    public string[] Tags { get; init; } = [];
-    public string MinAppVersion { get; init; } = string.Empty;
-}
-
-public record ContextEntry
-{
-    public string Key { get; init; } = string.Empty;
-    public string Value { get; init; } = string.Empty;
-    public string Source { get; init; } = string.Empty;
-    public DateTime CachedAt { get; init; }
-    public int HitCount { get; init; }
 }

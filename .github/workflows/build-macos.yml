@@ -1,0 +1,151 @@
+name: Build TooltipAI for macOS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'TooltipAI.Core/**'
+      - 'TooltipAI.Platform.Mac/**'
+      - '.github/workflows/build-macos.yml'
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  APP_NAME: 'Tooltip AI'
+  BUNDLE_ID: 'com.mimo.tooltipai'
+  VERSION: '1.0.0'
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        runtime: [osx-arm64, osx-x64]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore
+        run: dotnet restore TooltipAI.Platform.Mac/TooltipAI.Platform.Mac.csproj
+
+      - name: Build Core
+        run: dotnet build TooltipAI.Core/TooltipAI.Core.csproj -c Release --no-restore
+
+      - name: Publish
+        run: |
+          dotnet publish TooltipAI.Platform.Mac/TooltipAI.Platform.Mac.csproj \
+            -c Release \
+            -r ${{ matrix.runtime }} \
+            --self-contained \
+            -p:PublishTrimmed=true \
+            -p:PublishSingleFile=true \
+            -p:AssemblyName=tooltipai \
+            -o ./publish-${{ matrix.runtime }}
+
+      - name: Create App Bundle
+        run: |
+          RUNTIME=${{ matrix.runtime }}
+          APP_BUNDLE="./publish-${RUNTIME}/${APP_NAME}.app"
+          mkdir -p "${APP_BUNDLE}/Contents/MacOS"
+          mkdir -p "${APP_BUNDLE}/Contents/Resources"
+          mv "./publish-${RUNTIME}/tooltipai" "${APP_BUNDLE}/Contents/MacOS/tooltipai"
+          chmod +x "${APP_BUNDLE}/Contents/MacOS/tooltipai"
+
+          cat > "${APP_BUNDLE}/Contents/Info.plist" << 'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>CFBundleExecutable</key><string>tooltipai</string>
+              <key>CFBundleIdentifier</key><string>com.mimo.tooltipai</string>
+              <key>CFBundleName</key><string>Tooltip AI</string>
+              <key>CFBundleDisplayName</key><string>Tooltip AI</string>
+              <key>CFBundleVersion</key><string>1.0.0</string>
+              <key>CFBundleShortVersionString</key><string>1.0.0</string>
+              <key>CFBundlePackageType</key><string>APPL</string>
+              <key>LSMinimumSystemVersion</key><string>12.0</string>
+              <key>NSHighResolutionCapable</key><true/>
+          </dict>
+          </plist>
+          PLIST
+
+      - name: Create DMG
+        run: |
+          hdiutil create -volname "${APP_NAME}" \
+            -srcfolder "./publish-${{ matrix.runtime }}/${APP_NAME}.app" \
+            -ov -format UDZO \
+            "./publish-${{ matrix.runtime }}/TooltipAI-mac-${{ matrix.runtime }}.dmg"
+
+      - name: Generate Hashes
+        run: |
+          cd ./publish-${{ matrix.runtime }}
+          shasum -a 256 TooltipAI-mac-${{ matrix.runtime }}.dmg > TooltipAI-mac-${{ matrix.runtime }}.dmg.sha256
+
+      - name: Upload DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: tooltipai-mac-${{ matrix.runtime }}
+          path: ./publish-${{ matrix.runtime }}/TooltipAI-mac-${{ matrix.runtime }}.dmg
+
+      - name: Upload App Bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: tooltipai-mac-${{ matrix.runtime }}-app
+          path: ./publish-${{ matrix.runtime }}/${{ env.APP_NAME }}.app
+
+  release:
+    runs-on: ubuntu-latest
+    needs: build-macos
+    if: success()
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download ARM64 DMG
+        uses: actions/download-artifact@v4
+        with:
+          name: tooltipai-mac-osx-arm64
+
+      - name: Download x64 DMG
+        uses: actions/download-artifact@v4
+        with:
+          name: tooltipai-mac-osx-x64
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.VERSION }}-mac
+          name: "TooltipAI v${{ env.VERSION }} (macOS)"
+          body: |
+            ## macOS Release
+
+            ### Downloads
+            - **Apple Silicon (M1/M2/M3):** `TooltipAI-mac-osx-arm64.dmg`
+            - **Intel:** `TooltipAI-mac-osx-x64.dmg`
+
+            ### Installation
+            1. Download the DMG for your architecture
+            2. Open the DMG and drag "Tooltip AI" to Applications
+            3. On first launch, grant Accessibility permissions:
+               System Preferences > Privacy & Security > Accessibility > Tooltip AI
+            4. Grant Screen Recording permissions:
+               System Preferences > Privacy & Security > Screen Recording > Tooltip AI
+
+            ### Permissions Required
+            - **Accessibility:** To read UI element information
+            - **Screen Recording:** To detect mouse position via CGEventTap
+
+            ### SHA-256 Hashes
+            See attached .sha256 files for integrity verification.
+          draft: false
+          prerelease: false
+          files: |
+            tooltipai-mac-osx-arm64.dmg
+            tooltipai-mac-osx-x64.dmg

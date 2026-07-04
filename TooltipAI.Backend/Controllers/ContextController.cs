@@ -1,49 +1,46 @@
 using Microsoft.AspNetCore.Mvc;
+using TooltipAI.Backend.Models;
 using TooltipAI.Backend.Services;
 
 namespace TooltipAI.Backend.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class ContextController : ControllerBase
+public sealed class ContextController : ControllerBase
 {
-    private readonly ContextCacheService _cacheService;
+    private readonly ContextCacheService _contextCache;
 
-    public ContextController(ContextCacheService cacheService)
+    public ContextController(ContextCacheService contextCache)
     {
-        _cacheService = cacheService;
+        _contextCache = contextCache;
     }
 
     [HttpGet("{key}")]
-    public async Task<IActionResult> Get(string key)
+    public ActionResult<ContextEntry> Get(string key)
     {
-        var entry = await _cacheService.GetAsync(key);
+        var entry = _contextCache.Get(key);
         if (entry == null)
-            return NotFound(new { message = "Context not cached" });
-
-        return Ok(new { entry.Key, entry.Value, entry.Source, entry.CachedAt, entry.HitCount });
+        {
+            return NotFound(new { error = "Context not found", key });
+        }
+        return Ok(entry);
     }
 
     [HttpPost]
-    public async Task<IActionResult> Set([FromBody] SetContextRequest request)
+    public ActionResult<object> Set([FromBody] ContextCacheRequest request)
     {
-        await _cacheService.SetAsync(request.Key, request.Value, request.Source ?? "api");
-        return Ok(new { message = "Context cached" });
+        _contextCache.Set(request);
+        return Ok(new
+        {
+            success = true,
+            key = request.Key,
+            expiresAt = DateTime.UtcNow.AddSeconds(request.TtlSeconds)
+        });
     }
 
     [HttpGet("stats")]
-    public async Task<IActionResult> Stats()
+    public ActionResult<ContextCacheStats> Stats()
     {
-        var stats = await _cacheService.GetStatsAsync();
-        return Ok(stats);
-    }
-
-    [HttpPost("cleanup")]
-    public async Task<IActionResult> Cleanup()
-    {
-        var removed = await _cacheService.CleanupAsync();
-        return Ok(new { removed });
+        return Ok(_contextCache.GetStats());
     }
 }
-
-public record SetContextRequest(string Key, string Value, string? Source);

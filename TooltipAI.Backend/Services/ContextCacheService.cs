@@ -1,76 +1,76 @@
 using System.Collections.Concurrent;
-using System.Text.Json;
 using TooltipAI.Backend.Models;
 
 namespace TooltipAI.Backend.Services;
 
-public class ContextCacheService
+public sealed class ContextCacheService
 {
     private readonly ILogger<ContextCacheService> _logger;
     private readonly ConcurrentDictionary<string, ContextEntry> _cache = new();
-    private readonly TimeSpan _defaultTtl = TimeSpan.FromHours(24);
+    private long _totalHits;
+    private long _totalMisses;
 
     public ContextCacheService(ILogger<ContextCacheService> logger)
     {
         _logger = logger;
     }
 
-    public async Task<ContextEntry?> GetAsync(string key)
-    {
-        if (_cache.TryGetValue(key, out var entry) && entry.CachedAt.Add(_defaultTtl) > DateTime.UtcNow)
-        {
-            _logger.LogDebug("Cache hit: {Key}", key);
-            await Task.CompletedTask;
-            return entry;
-        }
-
-        _cache.TryRemove(key, out _);
-        return null;
-    }
-
-    public async Task SetAsync(string key, string value, string source = "local")
-    {
-        var entry = new ContextEntry
-        {
-            Key = key,
-            Value = value,
-            Source = source,
-            CachedAt = DateTime.UtcNow,
-            HitCount = 0
-        };
-
-        _cache[key] = entry;
-        _logger.LogDebug("Cache set: {Key} from {Source}", key, source);
-        await Task.CompletedTask;
-    }
-
-    public async Task<int> GetHitCountAsync(string key)
+    public ContextEntry? Get(string key)
     {
         if (_cache.TryGetValue(key, out var entry))
         {
-            await Task.CompletedTask;
-            return entry.HitCount;
+            if (entry.ExpiresAt > DateTime.UtcNow)
+            {
+                Interlocked.Increment(ref _totalHits);
+                return entry;
+            }
+
+            _cache.TryRemove(key, out _);
         }
 
-        await Task.CompletedTask;
-        return 0;
+        Interlocked.Increment(ref _totalMisses);
+        return null;
     }
 
-    public async Task<Dictionary<string, int>> GetStatsAsync()
+    public void Set(ContextCacheRequest request)
     {
-        await Task.CompletedTask;
-        return new Dictionary<string, int>
+        var entry = new ContextEntry
         {
-            ["total_entries"] = _cache.Count,
-            ["active_entries"] = _cache.Values.Count(e => e.CachedAt.Add(_defaultTtl) > DateTime.UtcNow),
-            ["expired_entries"] = _cache.Values.Count(e => e.CachedAt.Add(_defaultTtl) <= DateTime.UtcNow)
+            Key = request.Key,
+            ElementName = request.ElementName,
+            ElementType = request.ElementType,
+            ApplicationName = request.ApplicationName,
+            Context = request.Context,
+            Tags = request.Tags,
+            Confidence = request.Confidence,
+            CreatedAt = DateTime.UtcNow,
+            ExpiresAt = DateTime.UtcNow.AddSeconds(request.TtlSeconds)
+        };
+
+        _cache.AddOrUpdate(request.Key, entry, (_, _) => entry);
+        _logger.LogDebug("Context cached: {Key}, Expires: {Expires}", request.Key, entry.ExpiresAt);
+    }
+
+    public ContextCacheStats GetStats()
+    {
+        CleanupExpired();
+
+        var total = _totalHits + _totalMisses;
+        return new ContextCacheStats
+        {
+            TotalEntries = _cache.Count,
+            ActiveEntries = _cache.Values.Count(e => e.ExpiresAt > DateTime.UtcNow),
+            ExpiredEntries = _cache.Values.Count(e => e.ExpiresAt <= DateTime.UtcNow),
+            TotalHits = _totalHits,
+            TotalMisses = _totalMisses,
+            HitRate = total > 0 ? (double)_totalHits / total * 100 : 0
         };
     }
 
-    public async Task<int> CleanupAsync()
+    private void CleanupExpired()
     {
         var expiredKeys = _cache
-            .Where(kvp => kvp.Value.CachedAt.Add(_defaultTtl) <= DateTime.UtcNow)
+            .Where(kvp => kvp.Value.ExpiresAt <= DateTime.UtcNow)
             .Select(kvp => kvp.Key)
             .ToList();
 
@@ -78,9 +78,5 @@ public class ContextCacheService
         {
             _cache.TryRemove(key, out _);
         }
-
-        _logger.LogInformation("Cleaned up {Count} expired cache entries", expiredKeys.Count);
-        await Task.CompletedTask;
-        return expiredKeys.Count;
     }
 }

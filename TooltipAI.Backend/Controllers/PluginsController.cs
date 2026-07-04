@@ -6,36 +6,51 @@ namespace TooltipAI.Backend.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class PluginsController : ControllerBase
+public sealed class PluginsController : ControllerBase
 {
-    private readonly PluginRegistryService _registry;
+    private readonly PluginRegistryService _pluginRegistry;
 
-    public PluginsController(PluginRegistryService registry)
+    public PluginsController(PluginRegistryService pluginRegistry)
     {
-        _registry = registry;
+        _pluginRegistry = pluginRegistry;
     }
 
     [HttpGet]
-    public ActionResult<IEnumerable<PluginManifest>> GetAll([FromQuery] string? query = null, [FromQuery] string[]? tags = null)
+    public ActionResult<IReadOnlyList<PluginInfo>> GetAll()
     {
-        var plugins = _registry.Search(query, tags);
-        return Ok(plugins);
+        return Ok(_pluginRegistry.GetAll());
     }
 
     [HttpGet("{id}")]
-    public IActionResult GetById(string id)
+    public ActionResult<PluginInfo> GetById(string id)
     {
-        var plugin = _registry.GetById(id);
+        var plugin = _pluginRegistry.GetById(id);
         if (plugin == null)
-            return NotFound(new { message = $"Plugin '{id}' not found" });
-
+        {
+            return NotFound(new { error = "Plugin not found", id });
+        }
         return Ok(plugin);
     }
 
     [HttpPost]
-    public async Task<IActionResult> Register([FromBody] PluginManifest manifest)
+    public ActionResult<object> Register([FromBody] PluginRegisterRequest request)
     {
-        await _registry.RegisterAsync(manifest);
-        return CreatedAtAction(nameof(GetById), new { id = manifest.Id }, manifest);
+        var success = _pluginRegistry.Register(request);
+        if (!success)
+        {
+            return Conflict(new { error = "Plugin already registered", id = request.Id });
+        }
+        return CreatedAtAction(nameof(GetById), new { id = request.Id }, new
+        {
+            success = true,
+            id = request.Id,
+            name = request.Name
+        });
+    }
+
+    [HttpGet("stats")]
+    public ActionResult<PluginRegistryStats> Stats()
+    {
+        return Ok(_pluginRegistry.GetStats());
     }
 }
