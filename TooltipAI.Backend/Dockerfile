@@ -23,13 +23,17 @@ RUN dotnet publish TooltipAI.Backend/TooltipAI.Backend.csproj \
     /p:PublishTrimmed=true \
     /p:PublishSingleFile=true
 
-# ─── Final stage — Minimal runtime image ───────────────────────
-FROM mcr.microsoft.com/dotnet/runtime-deps:8.0-alpine AS final
+# ─── Final stage — Debian-based for compatibility ──────────────
+FROM mcr.microsoft.com/dotnet/runtime-deps:8.0 AS final
 
 LABEL maintainer="Tooltip AI Team"
 
+# Install wget for health check
+RUN apt-get update && apt-get install -y --no-install-recommends wget && \
+    rm -rf /var/lib/apt/lists/*
+
 # Create non-root user
-RUN addgroup -S tooltipai && adduser -S tooltipai -G tooltipai
+RUN groupadd -r tooltipai && useradd -r -g tooltipai -m tooltipai
 
 WORKDIR /app
 
@@ -37,7 +41,7 @@ WORKDIR /app
 COPY --from=build /app/publish .
 
 # Set ownership
-RUN chown -R tooltipai:tooltipai /app && chmod -R 550 /app
+RUN chown -R tooltipai:tooltipai /app
 
 # Switch to non-root user
 USER tooltipai
