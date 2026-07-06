@@ -1,0 +1,68 @@
+name: PR Validation
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --no-restore --configuration Release
+
+    - name: Run tests with coverage
+      run: |
+        dotnet test --no-build --configuration Release \
+          --collect:"XPlat Code Coverage" \
+          --results-directory ./coverage \
+          --logger "trx;LogFileName=test-results.trx"
+
+    - name: Check coverage threshold
+      run: |
+        COVERAGE=$(dotnet tool install --global dotnet-reportgenerator-globaltool 2>/dev/null; \
+          reportgenerator -reports:./coverage/**/coverage.cobertura.xml -targetdir:./coverage/report -reporttypes:TextSummary 2>/dev/null; \
+          cat ./coverage/report/Summary.txt 2>/dev/null | grep "Line coverage" | awk '{print $3}' | tr -d '%')
+        echo "Coverage: $COVERAGE%"
+        if [ $(echo "$COVERAGE < 80" | bc -l) -eq 1 ]; then
+          echo "ERROR: Coverage $COVERAGE% is below 80% threshold"
+          exit 1
+        fi
+
+    - name: Security scan
+      run: dotnet list package --vulnerabilities --include-transitive
+      continue-on-error: false
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results
+        path: ./coverage
+
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'table'
+        exit-code: '1'
+        severity: 'CRITICAL,HIGH'

@@ -83,10 +83,20 @@ App de escritorio multiplataforma que detecta el elemento bajo el cursor y muest
 ## Quick Start
 
 ### Windows
-```bash
+```powershell
 git clone https://github.com/dixi3stdgdl-design/tooltip-ai.git
 cd tooltip-ai
-./scripts/build-win-x64.sh
+
+# Ejecutar script de prueba completo
+.\scripts\test-windows.ps1
+
+# O manualmente:
+dotnet restore
+dotnet build -c Release
+dotnet test TooltipAI.Tests\TooltipAI.Tests.csproj
+
+# Ejecutar backend
+dotnet run --project TooltipAI.Backend
 ```
 
 ### macOS

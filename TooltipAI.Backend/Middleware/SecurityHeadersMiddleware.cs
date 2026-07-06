@@ -3,10 +3,12 @@ namespace TooltipAI.Backend.Middleware;
 public sealed class SecurityHeadersMiddleware
 {
     private readonly RequestDelegate _next;
+    private readonly string _cspReportUri;
 
-    public SecurityHeadersMiddleware(RequestDelegate next)
+    public SecurityHeadersMiddleware(RequestDelegate next, string? cspReportUri = null)
     {
         _next = next;
+        _cspReportUri = cspReportUri ?? "/api/security/csp-report";
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -17,7 +19,7 @@ public sealed class SecurityHeadersMiddleware
         context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
         context.Response.Headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
         context.Response.Headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains";
-        context.Response.Headers["Content-Security-Policy"] = "default-src 'self'";
+        context.Response.Headers["Content-Security-Policy"] = $"default-src 'self'; report-uri {_cspReportUri}";
 
         await _next(context);
     }

@@ -1,0 +1,481 @@
+[
+  {
+    "id": "office-excel-format-cells",
+    "apps": ["excel"],
+    "match": {
+      "nameContains": ["format cells", "formato de celdas"],
+      "controlType": ""
+    },
+    "context": "Right-click cell > Format Cells. Supports: Number, Currency, Date, Custom formats.",
+    "shortcut": "Ctrl+1",
+    "version": "1.0.0"
+  },
+  {
+    "id": "office-excel-autosum",
+    "apps": ["excel"],
+    "match": {
+      "nameContains": ["autosum", "suma automática", "auto sum"],
+      "controlType": ""
+    },
+    "context": "Inserts SUM formula for adjacent numeric cells.",
+    "shortcut": "Alt+=",
+    "version": "1.0.0"
+  },
+  {
+    "id": "office-excel-filter",
+    "apps": ["excel"],
+    "match": {
+      "nameContains": ["filter", "filtro"],
+      "controlType": ""
+    },
+    "context": "Adds AutoFilter to enable column-based filtering.",
+    "shortcut": "Ctrl+Shift+L",
+    "version": "1.0.0"
+  },
+  {
+    "id": "office-excel-pivot",
+    "apps": ["excel"],
+    "match": {
+      "nameContains": ["pivot", "tabla dinámica"],
+      "controlType": ""
+    },
+    "context": "Creates a PivotTable for data summarization and analysis.",
+    "shortcut": "",
+    "version": "1.0.0"
+  },
+  {
+    "id": "office-excel-chart",
+    "apps": ["excel"],
+    "match": {
+      "nameContains": ["chart", "gráfico"],
+      "controlType": ""
+    },
+    "context": "Inserts a chart based on selected data range.",
+    "shortcut": "Alt+F1",
+    "version": "1.0.0"
+  },
+  {
+    "id": "office-word-bold",
+    "apps": ["winword"],
+    "match": {
+      "nameContains": ["bold", "negrita"],
+      "controlType": ""
+    },
+    "context": "Toggles bold formatting for selected text.",
+    "shortcut": "Ctrl+B",
+    "version": "1.0.0"
+  },
+  {
+    "id": "office-word-italic",
+    "apps": ["winword"],
+    "match": {
+      "nameContains": ["italic", "cursiva"],
+      "controlType": ""
+    },
+    "context": "Toggles italic formatting for selected text.",
+    "shortcut": "Ctrl+I",
+    "version": "1.0.0"
+  },
+  {
+    "id": "office-word-find-replace",
+    "apps": ["winword"],
+    "match": {
+      "nameContains": ["find and replace", "buscar y reemplazar"],
+      "controlType": ""
+    },
+    "context": "Opens Find and Replace dialog for text search.",
+    "shortcut": "Ctrl+H",
+    "version": "1.0.0"
+  },
+  {
+    "id": "office-generic-save",
+    "apps": ["excel", "winword", "powerpnt"],
+    "match": {
+      "nameContains": ["save", "guardar"],
+      "controlType": ""
+    },
+    "context": "Save current document to disk.",
+    "shortcut": "Ctrl+S",
+    "version": "1.0.0"
+  },
+  {
+    "id": "office-generic-undo",
+    "apps": ["excel", "winword", "powerpnt"],
+    "match": {
+      "nameContains": ["undo", "deshacer"],
+      "controlType": ""
+    },
+    "context": "Undo last action. Supports multiple levels.",
+    "shortcut": "Ctrl+Z",
+    "version": "1.0.0"
+  },
+  {
+    "id": "office-generic-redo",
+    "apps": ["excel", "winword", "powerpnt"],
+    "match": {
+      "nameContains": ["redo", "rehacer"],
+      "controlType": ""
+    },
+    "context": "Redo last undone action.",
+    "shortcut": "Ctrl+Y",
+    "version": "1.0.0"
+  },
+  {
+    "id": "chrome-address-bar",
+    "apps": ["chrome"],
+    "match": {
+      "nameContains": ["address bar", "omnibox", "barra de direcciones"],
+      "className": ["Edit"],
+      "controlType": ""
+    },
+    "context": "Type URL or search query. Supports: https://, chrome://, about:, search terms.",
+    "shortcut": "Ctrl+L or F6",
+    "version": "1.0.0"
+  },
+  {
+    "id": "chrome-new-tab",
+    "apps": ["chrome"],
+    "match": {
+      "nameContains": ["new tab", "nueva pestaña"],
+      "controlType": ""
+    },
+    "context": "Opens a new tab page.",
+    "shortcut": "Ctrl+T",
+    "version": "1.0.0"
+  },
+  {
+    "id": "chrome-extensions",
+    "apps": ["chrome"],
+    "match": {
+      "nameContains": ["extensions", "extensiones"],
+      "controlType": ""
+    },
+    "context": "Manage installed extensions. Access via chrome://extensions",
+    "shortcut": "Ctrl+Shift+E",
+    "version": "1.0.0"
+  },
+  {
+    "id": "chrome-settings",
+    "apps": ["chrome"],
+    "match": {
+      "nameContains": ["settings", "configuración"],
+      "controlType": ""
+    },
+    "context": "Browser settings: Privacy, Appearance, Search engine, etc.",
+    "shortcut": "Ctrl+,",
+    "version": "1.0.0"
+  },
+  {
+    "id": "chrome-history",
+    "apps": ["chrome"],
+    "match": {
+      "nameContains": ["history", "historial"],
+      "controlType": ""
+    },
+    "context": "View and search browsing history.",
+    "shortcut": "Ctrl+H",
+    "version": "1.0.0"
+  },
+  {
+    "id": "chrome-downloads",
+    "apps": ["chrome"],
+    "match": {
+      "nameContains": ["downloads", "descargas"],
+      "controlType": ""
+    },
+    "context": "View downloaded files. Re-download or open location.",
+    "shortcut": "Ctrl+J",
+    "version": "1.0.0"
+  },
+  {
+    "id": "chrome-devtools",
+    "apps": ["chrome"],
+    "match": {
+      "nameContains": ["developer tools", "herramientas de desarrollo", "devtools"],
+      "controlType": ""
+    },
+    "context": "Inspect elements, debug JavaScript, analyze network.",
+    "shortcut": "F12",
+    "version": "1.0.0"
+  },
+  {
+    "id": "chrome-incognito",
+    "apps": ["chrome"],
+    "match": {
+      "nameContains": ["incognito", "incógnito"],
+      "controlType": ""
+    },
+    "context": "Private browsing - no history, cookies, or form data saved.",
+    "shortcut": "Ctrl+Shift+N",
+    "version": "1.0.0"
+  },
+  {
+    "id": "chrome-zoom-in",
+    "apps": ["chrome"],
+    "match": {
+      "nameContains": ["zoom in", "aumentar zoom"],
+      "controlType": ""
+    },
+    "context": "Increase page zoom level.",
+    "shortcut": "Ctrl++",
+    "version": "1.0.0"
+  },
+  {
+    "id": "vscode-explorer",
+    "apps": ["code"],
+    "match": {
+      "nameContains": ["explorer", "explorador"],
+      "className": ["sidebar"],
+      "controlType": ""
+    },
+    "context": "File explorer: browse, open, create, delete files and folders.",
+    "shortcut": "Ctrl+Shift+E",
+    "version": "1.0.0"
+  },
+  {
+    "id": "vscode-search",
+    "apps": ["code"],
+    "match": {
+      "nameContains": ["search", "buscar"],
+      "className": ["sidebar"],
+      "controlType": ""
+    },
+    "context": "Search across files. Supports regex and case-sensitive.",
+    "shortcut": "Ctrl+Shift+F",
+    "version": "1.0.0"
+  },
+  {
+    "id": "vscode-source-control",
+    "apps": ["code"],
+    "match": {
+      "nameContains": ["source control", "control de versiones", "git"],
+      "className": ["sidebar"],
+      "controlType": ""
+    },
+    "context": "Git operations: commit, push, pull, branch, merge.",
+    "shortcut": "Ctrl+Shift+G",
+    "version": "1.0.0"
+  },
+  {
+    "id": "vscode-debug",
+    "apps": ["code"],
+    "match": {
+      "nameContains": ["run", "debug", "depurar"],
+      "className": ["sidebar"],
+      "controlType": ""
+    },
+    "context": "Start debugging with breakpoints. Configure launch.json.",
+    "shortcut": "Ctrl+Shift+D",
+    "version": "1.0.0"
+  },
+  {
+    "id": "vscode-extensions",
+    "apps": ["code"],
+    "match": {
+      "nameContains": ["extensions", "extensiones"],
+      "className": ["sidebar"],
+      "controlType": ""
+    },
+    "context": "Install, disable, or uninstall extensions.",
+    "shortcut": "Ctrl+Shift+X",
+    "version": "1.0.0"
+  },
+  {
+    "id": "vscode-terminal",
+    "apps": ["code"],
+    "match": {
+      "nameContains": ["terminal", "consola"],
+      "controlType": ""
+    },
+    "context": "Integrated terminal: run commands, scripts, build tasks.",
+    "shortcut": "Ctrl+`",
+    "version": "1.0.0"
+  },
+  {
+    "id": "vscode-problems",
+    "apps": ["code"],
+    "match": {
+      "nameContains": ["problems", "problemas"],
+      "controlType": ""
+    },
+    "context": "View compilation errors, warnings, and linting issues.",
+    "shortcut": "Ctrl+Shift+M",
+    "version": "1.0.0"
+  },
+  {
+    "id": "vscode-command-palette",
+    "apps": ["code"],
+    "match": {
+      "nameContains": ["command palette", "paleta de comandos"],
+      "controlType": ""
+    },
+    "context": "Access all VS Code commands and settings.",
+    "shortcut": "Ctrl+Shift+P",
+    "version": "1.0.0"
+  },
+  {
+    "id": "vscode-go-to-file",
+    "apps": ["code"],
+    "match": {
+      "nameContains": ["go to file", "ir a archivo"],
+      "controlType": ""
+    },
+    "context": "Quick open any file by name.",
+    "shortcut": "Ctrl+P",
+    "version": "1.0.0"
+  },
+  {
+    "id": "vscode-go-to-definition",
+    "apps": ["code"],
+    "match": {
+      "nameContains": ["go to definition", "ir a definición"],
+      "controlType": ""
+    },
+    "context": "Navigate to symbol definition under cursor.",
+    "shortcut": "F12",
+    "version": "1.0.0"
+  },
+  {
+    "id": "vscode-rename-symbol",
+    "apps": ["code"],
+    "match": {
+      "nameContains": ["rename", "renombrar"],
+      "controlType": ""
+    },
+    "context": "Rename variable, function, or class across files.",
+    "shortcut": "F2",
+    "version": "1.0.0"
+  },
+  {
+    "id": "vscode-format",
+    "apps": ["code"],
+    "match": {
+      "nameContains": ["format", "formatear"],
+      "controlType": ""
+    },
+    "context": "Auto-format code using configured formatter.",
+    "shortcut": "Shift+Alt+F",
+    "version": "1.0.0"
+  },
+  {
+    "id": "vscode-settings",
+    "apps": ["code"],
+    "match": {
+      "nameContains": ["settings", "configuración"],
+      "controlType": ""
+    },
+    "context": "User and workspace settings. Search for any setting.",
+    "shortcut": "Ctrl+,",
+    "version": "1.0.0"
+  },
+  {
+    "id": "vscode-toggle-sidebar",
+    "apps": ["code"],
+    "match": {
+      "nameContains": ["toggle sidebar", "alternar barra lateral"],
+      "controlType": ""
+    },
+    "context": "Show or hide the sidebar panel.",
+    "shortcut": "Ctrl+B",
+    "version": "1.0.0"
+  },
+  {
+    "id": "vscode-split-editor",
+    "apps": ["code"],
+    "match": {
+      "nameContains": ["split editor", "dividir editor"],
+      "controlType": ""
+    },
+    "context": "Open editor side-by-side for multi-file editing.",
+    "shortcut": "Ctrl+\\",
+    "version": "1.0.0"
+  },
+  {
+    "id": "vscode-close-editor",
+    "apps": ["code"],
+    "match": {
+      "nameContains": ["close editor", "cerrar editor"],
+      "controlType": ""
+    },
+    "context": "Close current editor tab.",
+    "shortcut": "Ctrl+W",
+    "version": "1.0.0"
+  },
+  {
+    "id": "vscode-zen-mode",
+    "apps": ["code"],
+    "match": {
+      "nameContains": ["zen mode", "modo zen"],
+      "controlType": ""
+    },
+    "context": "Distraction-free editing with full-screen editor.",
+    "shortcut": "Ctrl+K Z",
+    "version": "1.0.0"
+  },
+  {
+    "id": "vscode-keyboard-shortcuts",
+    "apps": ["code"],
+    "match": {
+      "nameContains": ["keyboard shortcuts", "atajos de teclado"],
+      "controlType": ""
+    },
+    "context": "View and customize all keyboard shortcuts.",
+    "shortcut": "Ctrl+K Ctrl+S",
+    "version": "1.0.0"
+  },
+  {
+    "id": "generic-button",
+    "apps": ["*"],
+    "match": {
+      "nameContains": [],
+      "controlType": "Button"
+    },
+    "context": "Interactive button. Click to activate.",
+    "shortcut": "",
+    "version": "1.0.0"
+  },
+  {
+    "id": "generic-textbox",
+    "apps": ["*"],
+    "match": {
+      "nameContains": [],
+      "controlType": "TextBox"
+    },
+    "context": "Text input field. Click to type.",
+    "shortcut": "",
+    "version": "1.0.0"
+  },
+  {
+    "id": "generic-combobox",
+    "apps": ["*"],
+    "match": {
+      "nameContains": [],
+      "controlType": "ComboBox"
+    },
+    "context": "Dropdown selection. Click to expand options.",
+    "shortcut": "",
+    "version": "1.0.0"
+  },
+  {
+    "id": "generic-checkbox",
+    "apps": ["*"],
+    "match": {
+      "nameContains": [],
+      "controlType": "CheckBox"
+    },
+    "context": "Toggle option on/off.",
+    "shortcut": "",
+    "version": "1.0.0"
+  },
+  {
+    "id": "generic-link",
+    "apps": ["*"],
+    "match": {
+      "nameContains": [],
+      "controlType": "Hyperlink"
+    },
+    "context": "Clickable hyperlink. Opens destination.",
+    "shortcut": "",
+    "version": "1.0.0"
+  }
+]

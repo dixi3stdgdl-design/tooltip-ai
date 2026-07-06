@@ -117,6 +117,149 @@ public sealed class LicenseService
         return Convert.ToBase64String(Encoding.UTF8.GetBytes(raw));
     }
 
+    public async Task CreateLicenseAsync(LicenseInfo license)
+    {
+        lock (_lock)
+        {
+            _licenses[license.LicenseId] = license;
+        }
+        _logger.LogInformation("License created: {LicenseId}, Key: {Key}", license.LicenseId, license.LicenseKey);
+        await Task.CompletedTask;
+    }
+
+    public async Task ActivateLicenseAsync(string licenseId)
+    {
+        lock (_lock)
+        {
+            if (_licenses.TryGetValue(licenseId, out var license))
+            {
+                _licenses[licenseId] = license with { IsActive = true };
+            }
+        }
+        _logger.LogInformation("License activated: {LicenseId}", licenseId);
+        await Task.CompletedTask;
+    }
+
+    public async Task DeactivateLicenseAsync(string licenseId)
+    {
+        lock (_lock)
+        {
+            if (_licenses.TryGetValue(licenseId, out var license))
+            {
+                _licenses[licenseId] = license with { IsActive = false };
+            }
+        }
+        _logger.LogInformation("License deactivated: {LicenseId}", licenseId);
+        await Task.CompletedTask;
+    }
+
+    public async Task ExtendLicenseAsync(string licenseKey, int days)
+    {
+        lock (_lock)
+        {
+            var license = _licenses.Values.FirstOrDefault(l => l.LicenseKey == licenseKey);
+            if (license != null)
+            {
+                _licenses[license.LicenseId] = license with 
+                { 
+                    ExpiresAt = license.ExpiresAt.AddDays(days) 
+                };
+            }
+        }
+        _logger.LogInformation("License extended by {Days} days: {Key}", days, licenseKey);
+        await Task.CompletedTask;
+    }
+
+    public async Task ExtendLicenseUntilAsync(string licenseId, DateTime until)
+    {
+        lock (_lock)
+        {
+            if (_licenses.TryGetValue(licenseId, out var license))
+            {
+                if (until > license.ExpiresAt)
+                {
+                    _licenses[licenseId] = license with { ExpiresAt = until };
+                }
+            }
+        }
+        _logger.LogInformation("License extended until {Until}: {LicenseId}", until, licenseId);
+        await Task.CompletedTask;
+    }
+
+    public async Task RevokeLicenseAsync(string licenseKey)
+    {
+        lock (_lock)
+        {
+            var license = _licenses.Values.FirstOrDefault(l => l.LicenseKey == licenseKey);
+            if (license != null)
+            {
+                _licenses.Remove(license.LicenseId);
+            }
+        }
+        _logger.LogInformation("License revoked: {Key}", licenseKey);
+        await Task.CompletedTask;
+    }
+
+    public async Task MarkLicensePastDueAsync(string licenseId)
+    {
+        lock (_lock)
+        {
+            if (_licenses.TryGetValue(licenseId, out var license))
+            {
+                // Mark as past due but keep active for grace period
+                _licenses[licenseId] = license with { IsActive = true };
+            }
+        }
+        _logger.LogInformation("License marked as past due: {LicenseId}", licenseId);
+        await Task.CompletedTask;
+    }
+
+    public async Task<LicenseValidateResponse> ValidateLicenseAsync(string licenseKey)
+    {
+        var request = new LicenseValidateRequest
+        {
+            LicenseKey = licenseKey,
+            MachineId = "web-validation"
+        };
+        return await Task.FromResult(Validate(request));
+    }
+
+    public LicenseInfo? GetCurrentLicense()
+    {
+        lock (_lock)
+        {
+            return _licenses.Values.FirstOrDefault(l => l.IsActive);
+        }
+    }
+
+    public void SaveLicense(string licenseKey, string tier, DateTime expiresAt)
+    {
+        lock (_lock)
+        {
+            _licenses[$"local_{licenseKey}"] = new LicenseInfo
+            {
+                LicenseId = $"local_{licenseKey}",
+                LicenseKey = licenseKey,
+                Tier = tier,
+                CreatedAt = DateTime.UtcNow,
+                ExpiresAt = expiresAt,
+                IsActive = true
+            };
+        }
+    }
+
+    public void ClearLicense()
+    {
+        lock (_lock)
+        {
+            var keysToRemove = _licenses.Where(l => l.Key.StartsWith("local_")).Select(l => l.Key).ToList();
+            foreach (var key in keysToRemove)
+            {
+                _licenses.Remove(key);
+            }
+        }
+    }
+
     private LicenseDecoded? DecodeLicenseKey(string licenseKey)
     {
         try

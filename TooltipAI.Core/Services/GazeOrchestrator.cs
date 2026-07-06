@@ -191,7 +191,7 @@ public sealed class GazeOrchestrator : IDisposable
 
     private Task<ActionToken?> InferActionAsync(GazeContext context)
     {
-        // In production, this would call Gemini Nano or local model
+        // In production, this would call a local LLM or cloud AI service
         // For now, implement simple intent parsing
 
         var intent = context.UserIntent.ToLowerInvariant();

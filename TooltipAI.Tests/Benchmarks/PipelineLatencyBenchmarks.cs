@@ -17,11 +17,10 @@ namespace TooltipAI.Tests.Benchmarks;
 /// Run with: dotnet run -c Release -- --filter "*PipelineLatency*"
 /// 
 /// These benchmarks measure the EXACT latency of each pipeline phase
-/// to provide evidence for Google Gemini Partnership technical review.
+/// to provide evidence for technical reviews and performance validation.
 /// </summary>
 [MemoryDiagnoser]
 [SimpleJob(RuntimeMoniker.Net80, iterationCount: 100)]
-[SimpleJob(RuntimeMoniker.Net80, jobCount: 3)]
 public class PipelineLatencyBenchmarks
 {
     private LocalContextEnricher _enricher = null!;

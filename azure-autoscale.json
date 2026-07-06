@@ -1,0 +1,66 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/autoscaleConfiguration.json#",
+  "contentVersion": "1.0.0.0",
+  "properties": {
+    "profiles": [
+      {
+        "name": "default",
+        "capacity": {
+          "minimum": "2",
+          "maximum": "10",
+          "default": "2"
+        },
+        "rules": [
+          {
+            "metricName": "CpuPercentage",
+            "metricNamespace": "Microsoft.Web/sites",
+            "timeGrain": "PT1M",
+            "statistic": "Average",
+            "timeWindow": "PT5M",
+            "timeAggregation": "Average",
+            "operator": "GreaterThan",
+            "threshold": 70,
+            "scaleAction": {
+              "direction": "Increase",
+              "type": "ChangeCount",
+              "value": "1",
+              "cooldown": "PT5M"
+            }
+          },
+          {
+            "metricName": "CpuPercentage",
+            "metricNamespace": "Microsoft.Web/sites",
+            "timeGrain": "PT1M",
+            "statistic": "Average",
+            "timeWindow": "PT10M",
+            "timeAggregation": "Average",
+            "operator": "LessThan",
+            "threshold": 30,
+            "scaleAction": {
+              "direction": "Decrease",
+              "type": "ChangeCount",
+              "value": "1",
+              "cooldown": "PT10M"
+            }
+          },
+          {
+            "metricName": "HttpQueueLength",
+            "metricNamespace": "Microsoft.Web/sites",
+            "timeGrain": "PT1M",
+            "statistic": "Average",
+            "timeWindow": "PT5M",
+            "timeAggregation": "Average",
+            "operator": "GreaterThan",
+            "threshold": 100,
+            "scaleAction": {
+              "direction": "Increase",
+              "type": "ChangeCount",
+              "value": "1",
+              "cooldown": "PT5M"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

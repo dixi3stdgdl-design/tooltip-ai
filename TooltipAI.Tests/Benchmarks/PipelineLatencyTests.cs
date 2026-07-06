@@ -170,8 +170,7 @@ public class PipelineLatencyTests
         var cache = new Dictionary<string, TooltipData>();
         for (int i = 0; i < 1000; i++)
         {
-            var elem = new ElementInfo { Name = $"E_{i}", ControlType = "Button", ClassName = "Button", ProcessName = "test" };
-            cache[$"key_{i}"] = CreateTooltipData(elem);
+                cache[$"key_{i}"] = CreateTooltipData();
         }
 
         var sw = Stopwatch.StartNew();

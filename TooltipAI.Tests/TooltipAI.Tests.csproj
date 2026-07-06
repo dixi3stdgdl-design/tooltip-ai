@@ -18,11 +18,18 @@
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="8.0.0" />
     <PackageReference Include="BenchmarkDotNet" Version="0.14.0" />
+    <PackageReference Include="coverlet.collector" Version="6.0.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\TooltipAI.Core\TooltipAI.Core.csproj" />
     <ProjectReference Include="..\TooltipAI.Backend\TooltipAI.Backend.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\TooltipAI.Core\Rules\rules.json" Link="Rules\rules.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>

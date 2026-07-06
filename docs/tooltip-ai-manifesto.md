@@ -1,5 +1,5 @@
 # Tooltip AI — Technical Manifesto & Architecture Blueprint
-## Multiplataforma: Windows + macOS | Backend: Azure Linux 4 | Alianza: Google Gemini Nano
+## Multiplataforma: Windows + macOS | Backend: Azure Linux 4
 
 **Autor:** Octavio Garcia (dixi3stdgdl-design)  
 **Fecha:** Julio 2026  
