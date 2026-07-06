@@ -1,6 +1,8 @@
 using TooltipAI.Backend.Middleware;
 using TooltipAI.Backend.Services;
+using TooltipAI.Core.AI;
 using TooltipAI.Core.Services;
+using TooltipAI.Core.Translate;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +13,7 @@ builder.Services.AddSwaggerGen(c =>
     c.SwaggerDoc("v1", new() { Title = "TooltipAI Backend", Version = "v1" });
 });
 
+// Core services
 builder.Services.AddSingleton<TooltipAI.Backend.Services.LicenseService>();
 builder.Services.AddSingleton<ContextCacheService>();
 builder.Services.AddSingleton<PluginRegistryService>();
@@ -19,6 +22,24 @@ builder.Services.AddSingleton<TelemetryAggregator>();
 builder.Services.AddSingleton<EnrichmentEngine>();
 builder.Services.AddHttpClient<LLMProvider>();
 builder.Services.AddMemoryCache();
+
+// Hybrid AI System (Gemini Nano + Cloud LLM + Router)
+builder.Services.AddSingleton<GeminiNanoProvider>(sp =>
+    new GeminiNanoProvider(sp.GetRequiredService<ILogger<GeminiNanoProvider>>()));
+builder.Services.AddSingleton<CloudLLMProvider>(sp =>
+    new CloudLLMProvider(
+        sp.GetRequiredService<HttpClient>(),
+        sp.GetRequiredService<ILogger<CloudLLMProvider>>(),
+        builder.Configuration["CloudLLM:ApiKey"],
+        builder.Configuration["CloudLLM:Endpoint"],
+        builder.Configuration["CloudLLM:Model"]));
+builder.Services.AddSingleton<HttpClient>();
+builder.Services.AddSingleton<AIRouter>();
+
+// Translate Module (Gemini Nano powered - zero cost)
+builder.Services.AddSingleton<LanguageDetector>();
+builder.Services.AddSingleton<Translator>();
+builder.Services.AddSingleton<ConversationMode>();
 
 // Redis cache for distributed scenarios (optional)
 // Uncomment when adding Redis NuGet package: Microsoft.Extensions.Caching.StackExchangeRedis
