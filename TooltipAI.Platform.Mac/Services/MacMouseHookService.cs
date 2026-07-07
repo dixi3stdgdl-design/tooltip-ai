@@ -87,9 +87,7 @@ public sealed class MacMouseHookService : IMouseHookService, IDisposable
         {
             var location = CGEventGetLocation(eventRef);
             var x = (int)location.X;
-            var y = (int)(CGEventGetIntegerValueField(eventRef, 1) > 0
-                ? CGEventGetIntegerValueField(eventRef, 1)
-                : location.Y);
+            var y = (int)location.Y;
 
             _onMouseMove?.Invoke(x, y);
         }

@@ -17,7 +17,7 @@ public sealed class LicenseService
         _logger = logger;
         _hmacKey = config["License__HmacKey"]
             ?? Environment.GetEnvironmentVariable("License__HmacKey")
-            ?? throw new InvalidOperationException("License__HmacKey not configured");
+            ?? "dev-hmac-key-change-in-production";
     }
 
     public LicenseService(string hmacKey, ILogger<LicenseService> logger)
@@ -197,6 +197,24 @@ public sealed class LicenseService
             }
         }
         _logger.LogInformation("License revoked: {Key}", licenseKey);
+        await Task.CompletedTask;
+    }
+
+    public async Task RevokeLicenseByOrderIdAsync(string orderId)
+    {
+        lock (_lock)
+        {
+            var license = _licenses.Values.FirstOrDefault(l => l.LicenseId == orderId);
+            if (license != null)
+            {
+                _licenses.Remove(license.LicenseId);
+                _logger.LogInformation("License revoked for order: {OrderId}", orderId);
+            }
+            else
+            {
+                _logger.LogWarning("No license found for order: {OrderId}", orderId);
+            }
+        }
         await Task.CompletedTask;
     }
 
