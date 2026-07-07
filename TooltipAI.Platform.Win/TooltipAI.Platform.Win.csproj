@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows10.0.22621.0</TargetFramework>
+    <OutputType>Library</OutputType>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>TooltipAI.Platform.Win</RootNamespace>
+    <AssemblyName>TooltipAI.Platform.Win</AssemblyName>
+    <Version>1.0.0</Version>
+    <Authors>MiMo Team</Authors>
+    <Description>TooltipAI Windows Platform — WASAPI, UI Automation, GDI+ renderers</Description>
+    <WindowsPackageType>None</WindowsPackageType>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.WindowsDesktop.App.WindowsForms" />
+    <Reference Include="UIAutomationClient" />
+    <Reference Include="UIAutomationTypes" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TooltipAI.Core\TooltipAI.Core.csproj" />
+  </ItemGroup>
+
+</Project>
