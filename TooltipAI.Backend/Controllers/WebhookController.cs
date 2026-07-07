@@ -193,7 +193,7 @@ public class WebhookController : ControllerBase
         if (status == "refunded")
         {
             _logger.LogInformation("Order refunded: {OrderId}", orderId);
-            // TODO: Revoke license for refunded order
+            await _paymentService.RevokeLicenseForOrder(orderId ?? "");
         }
 
         await Task.CompletedTask;
