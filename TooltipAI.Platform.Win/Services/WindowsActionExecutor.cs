@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Windows.Automation;
 using TooltipAI.Core.Interfaces;
 using TooltipAI.Core.Models;
 
@@ -89,49 +90,129 @@ public sealed class WindowsActionExecutor : IActionExecutor
 
     private object? FindElement(ElementInfo element)
     {
-        // In production, this would use IUIAutomation to find the element
-        // by AutomationId, Name, or other properties
-        // For now, return null (element not found)
-        return null;
+        try
+        {
+            var root = AutomationElement.RootElement;
+
+            // Search by AutomationId first
+            if (!string.IsNullOrEmpty(element.AutomationId))
+            {
+                var condition = new PropertyCondition(AutomationElement.AutomationIdProperty, element.AutomationId);
+                var found = root.FindFirst(TreeScope.Subtree, condition);
+                if (found != null) return found;
+            }
+
+            // Fallback: search by Name
+            if (!string.IsNullOrEmpty(element.Name) && element.Name != "Unknown")
+            {
+                var condition = new PropertyCondition(AutomationElement.NameProperty, element.Name);
+                var found = root.FindFirst(TreeScope.Subtree, condition);
+                if (found != null) return found;
+            }
+
+            return null;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private Task<bool> InvokeElement(object element)
     {
-        // Cast to IUIAutomationInvokePattern and call Invoke()
-        // In real implementation:
-        // var pattern = element.GetCurrentPattern(UIA_InvokePatternId);
-        // var invokePattern = (IUIAutomationInvokePattern)pattern;
-        // invokePattern.Invoke();
-
-        Debug.WriteLine("INVOKING element");
-        return Task.FromResult(true);
+        try
+        {
+            if (element is AutomationElement el && el.TryGetCurrentPattern(InvokePattern.Pattern, out var pattern))
+            {
+                ((InvokePattern)pattern).Invoke();
+                return Task.FromResult(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Invoke failed: {ex.Message}");
+        }
+        return Task.FromResult(false);
     }
 
     private Task<bool> SelectElement(object element)
     {
-        // Cast to IUIAutomationSelectionItemPattern and call Select()
-        Debug.WriteLine("SELECTING element");
-        return Task.FromResult(true);
+        try
+        {
+            if (element is AutomationElement el && el.TryGetCurrentPattern(SelectionItemPattern.Pattern, out var pattern))
+            {
+                ((SelectionItemPattern)pattern).Select();
+                return Task.FromResult(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Select failed: {ex.Message}");
+        }
+        return Task.FromResult(false);
     }
 
     private Task<bool> ToggleElement(object element)
     {
-        // Cast to IUIAutomationTogglePattern and call Toggle()
-        Debug.WriteLine("TOGGLING element");
-        return Task.FromResult(true);
+        try
+        {
+            if (element is AutomationElement el && el.TryGetCurrentPattern(TogglePattern.Pattern, out var pattern))
+            {
+                ((TogglePattern)pattern).Toggle();
+                return Task.FromResult(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Toggle failed: {ex.Message}");
+        }
+        return Task.FromResult(false);
     }
 
     private Task<bool> TypeText(object element, string text)
     {
-        // Cast to IUIAutomationValuePattern and call SetValue()
-        Debug.WriteLine($"TYPING text: {text}");
-        return Task.FromResult(true);
+        try
+        {
+            if (element is AutomationElement el && el.TryGetCurrentPattern(ValuePattern.Pattern, out var pattern))
+            {
+                ((ValuePattern)pattern).SetValue(text);
+                return Task.FromResult(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"TypeText failed: {ex.Message}");
+        }
+        return Task.FromResult(false);
     }
 
     private Task<bool> ScrollElement(object element, string? direction)
     {
-        // Cast to IUIAutomationScrollPattern and call Scroll()
-        Debug.WriteLine($"SCROLLING element: {direction}");
-        return Task.FromResult(true);
+        try
+        {
+            if (element is AutomationElement el && el.TryGetCurrentPattern(ScrollPattern.Pattern, out var pattern))
+            {
+                var scroll = (ScrollPattern)pattern;
+                var horizontal = direction?.ToLower() switch
+                {
+                    "left" => -1.0,
+                    "right" => 1.0,
+                    _ => 0.0
+                };
+                var vertical = direction?.ToLower() switch
+                {
+                    "up" => -1.0,
+                    "down" => 1.0,
+                    _ => 0.0
+                };
+                scroll.Scroll(horizontal, vertical);
+                return Task.FromResult(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Scroll failed: {ex.Message}");
+        }
+        return Task.FromResult(false);
     }
 }
