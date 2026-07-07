@@ -11,5 +11,6 @@ public class ElementInfo
     public string ClassName { get; set; } = string.Empty;
     public string WindowTitle { get; set; } = string.Empty;
     public string ProcessName { get; set; } = string.Empty;
+    public int ProcessId { get; set; }
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 }
