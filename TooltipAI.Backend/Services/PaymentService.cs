@@ -7,11 +7,13 @@ namespace TooltipAI.Backend.Services;
 public class PaymentService
 {
     private readonly LicenseService _licenseService;
+    private readonly IEmailService _emailService;
     private readonly ILogger<PaymentService> _logger;
 
-    public PaymentService(LicenseService licenseService, ILogger<PaymentService> logger)
+    public PaymentService(LicenseService licenseService, IEmailService emailService, ILogger<PaymentService> logger)
     {
         _licenseService = licenseService;
+        _emailService = emailService;
         _logger = logger;
     }
 
@@ -47,8 +49,8 @@ public class PaymentService
 
             _logger.LogInformation("License generated: {LicenseKey} for {Email}", licenseKey, email);
 
-            // TODO: Send email with license key
-            // await _emailService.SendLicenseEmail(email, licenseKey, tier, expiryDate);
+            // Send email with license key
+            await _emailService.SendLicenseEmail(email, licenseKey, tier, expiryDate);
         }
         catch (Exception ex)
         {
@@ -169,6 +171,20 @@ public class PaymentService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to revoke license {LicenseKey}", licenseKey);
+            throw;
+        }
+    }
+
+    public async Task RevokeLicenseForOrder(string orderId)
+    {
+        try
+        {
+            _logger.LogInformation("Revoking license for order: {OrderId}", orderId);
+            await _licenseService.RevokeLicenseByOrderIdAsync(orderId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to revoke license for order {OrderId}", orderId);
             throw;
         }
     }
