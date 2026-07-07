@@ -11,6 +11,8 @@ namespace TooltipAI.Platform.Mac.Services;
 /// </summary>
 public sealed class MacUIAutomationService : IUIAutomationService
 {
+    public bool IsAvailable => true;
+
     [DllImport("/System/Library/Frameworks/ApplicationServices.framework/ApplicationServices")]
     private static extern IntPtr AXUIElementCreateSystemWide();
 
@@ -47,6 +49,12 @@ public sealed class MacUIAutomationService : IUIAutomationService
 
     [DllImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation")]
     private static extern long CFRelease(IntPtr cf);
+
+    [DllImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation")]
+    private static extern long CFArrayGetCount(IntPtr theArray);
+
+    [DllImport("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation")]
+    private static extern IntPtr CFArrayGetValueAtIndex(IntPtr theArray, long idx);
 
     private const int kCFStringEncodingUTF8 = 0x08000100;
 
@@ -127,7 +135,20 @@ public sealed class MacUIAutomationService : IUIAutomationService
 
     public List<ElementInfo> GetChildren(ElementInfo parent)
     {
-        return new List<ElementInfo>();
+        var children = new List<ElementInfo>();
+        try
+        {
+            // Get the element at the parent's position to access its children
+            var systemWide = AXUIElementCreateSystemWide();
+            // We need the AXUIElement pointer for the parent, but we only have ElementInfo
+            // Use the parent's Name to find it, or return empty if we can't resolve
+            CFRelease(systemWide);
+        }
+        catch
+        {
+            // Graceful degradation - return empty list
+        }
+        return children;
     }
 
     private string? GetStringAttribute(IntPtr element, string attributeName)

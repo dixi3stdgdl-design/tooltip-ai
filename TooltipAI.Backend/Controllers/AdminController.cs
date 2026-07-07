@@ -44,11 +44,10 @@ public class AdminController : ControllerBase
         if (string.IsNullOrEmpty(tenantId))
             return BadRequest("TenantId is required");
 
-        var users = new List<UserInfo>
-        {
-            new() { UserId = "user-1", Email = "admin@example.com", Role = "Admin", LastActive = DateTime.UtcNow },
-            new() { UserId = "user-2", Email = "user@example.com", Role = "User", LastActive = DateTime.UtcNow.AddHours(-2) }
-        };
+        _logger.LogInformation("Listing users for tenant: {TenantId}", tenantId);
+
+        // TODO: Implement real user storage (Azure Table Storage or DB)
+        var users = new List<UserInfo>();
 
         return Ok(users);
     }
@@ -76,16 +75,19 @@ public class AdminController : ControllerBase
         if (string.IsNullOrEmpty(tenantId))
             return BadRequest("TenantId is required");
 
+        _logger.LogInformation("Getting metrics for tenant: {TenantId}, period: {Period}", tenantId, period);
+
+        // TODO: Implement real metrics collection (Azure Table Storage)
         var metrics = new TenantMetrics
         {
             TenantId = tenantId,
             Period = period ?? "30d",
-            ActiveUsers = 45,
-            TotalTooltipsShown = 12500,
-            AverageTooltipsPerUser = 278,
-            EnrichmentUsageRate = 0.65,
-            Retention7Day = 0.82,
-            Retention30Day = 0.68
+            ActiveUsers = 0,
+            TotalTooltipsShown = 0,
+            AverageTooltipsPerUser = 0,
+            EnrichmentUsageRate = 0,
+            Retention7Day = 0,
+            Retention30Day = 0
         };
 
         return Ok(metrics);

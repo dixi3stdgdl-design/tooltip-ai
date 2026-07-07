@@ -75,8 +75,8 @@ public sealed class MacTooltipWindow : IDisposable
 
     public void Show(TooltipData data, int x, int y)
     {
-        var titleText = $"{data.ElementType}: {data.ElementName}";
-        var contextText = data.Context;
+        var titleText = $"{data.Element.ControlType}: {data.Element.Name}";
+        var contextText = data.EnrichedContext ?? data.AiContext ?? string.Empty;
 
         var titlePtr = CFStringCreateWithCString(IntPtr.Zero, titleText, 0x08000100);
         var contextPtr = CFStringCreateWithCString(IntPtr.Zero, contextText, 0x08000100);
