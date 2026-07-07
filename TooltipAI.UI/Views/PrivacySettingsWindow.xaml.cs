@@ -1,9 +1,10 @@
-using System.Windows;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using TooltipAI.Core.Services;
 
 namespace TooltipAI.UI.Views;
 
-public partial class PrivacySettingsWindow : Window
+public sealed partial class PrivacySettingsWindow : Window
 {
     private readonly ConsentManager _consentManager;
     private readonly AppBlacklistService _blacklistService;
@@ -48,28 +49,39 @@ public partial class PrivacySettingsWindow : Window
         }
     }
 
-    private void BtnSave_Click(object sender, RoutedEventArgs e)
+    private async void BtnSave_Click(object sender, RoutedEventArgs e)
     {
         _consentManager.EnableAIEnrichment(ChkAIEnrichment.IsChecked ?? false);
         _consentManager.EnableTelemetry(ChkTelemetry.IsChecked ?? false);
         _consentManager.SetLocalOnlyMode(ChkLocalOnly.IsChecked ?? true);
         
-        MessageBox.Show("Settings saved successfully.", "Success", 
-            MessageBoxButton.OK, MessageBoxImage.Information);
+        var dialog = new ContentDialog
+        {
+            Title = "Success",
+            Content = "Settings saved successfully.",
+            CloseButtonText = "OK",
+            XamlRoot = this.Content.XamlRoot
+        };
+        await dialog.ShowAsync();
         
-        DialogResult = true;
         Close();
     }
 
-    private void BtnReset_Click(object sender, RoutedEventArgs e)
+    private async void BtnReset_Click(object sender, RoutedEventArgs e)
     {
-        var result = MessageBox.Show(
-            "Reset all privacy settings to defaults?", 
-            "Confirm Reset", 
-            MessageBoxButton.YesNo, 
-            MessageBoxImage.Question);
+        var confirmDialog = new ContentDialog
+        {
+            Title = "Confirm Reset",
+            Content = "Reset all privacy settings to defaults?",
+            PrimaryButtonText = "Yes",
+            CloseButtonText = "Cancel",
+            DefaultButton = ContentDialogButton.Close,
+            XamlRoot = this.Content.XamlRoot
+        };
+
+        var result = await confirmDialog.ShowAsync();
         
-        if (result == MessageBoxResult.Yes)
+        if (result == ContentDialogResult.Primary)
         {
             _consentManager.ResetToDefaults();
             _blacklistService.Clear();
@@ -77,7 +89,7 @@ public partial class PrivacySettingsWindow : Window
         }
     }
 
-    protected override void OnClosed(EventArgs e)
+    protected override void OnClosed(WindowEventArgs e)
     {
         _consentManager.Dispose();
         _blacklistService.Dispose();

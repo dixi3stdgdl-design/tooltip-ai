@@ -15,13 +15,18 @@ builder.Services.AddSwaggerGen(c =>
 
 // Core services
 builder.Services.AddSingleton<TooltipAI.Backend.Services.LicenseService>();
+builder.Services.AddSingleton<IEmailService, EmailService>();
+builder.Services.AddSingleton<PaymentService>();
 builder.Services.AddSingleton<ContextCacheService>();
 builder.Services.AddSingleton<PluginRegistryService>();
-builder.Services.AddSingleton<PIIFilter>();
+builder.Services.AddSingleton<PIIFilter>(PIIFilter.Instance);
 builder.Services.AddSingleton<TelemetryAggregator>();
 builder.Services.AddSingleton<EnrichmentEngine>();
-builder.Services.AddHttpClient<LLMProvider>();
 builder.Services.AddMemoryCache();
+builder.Services.AddHttpClient<LLMProvider>();
+
+// Shared HttpClient for manually-constructed providers (CloudLLMProvider)
+builder.Services.AddSingleton(new HttpClient { Timeout = TimeSpan.FromSeconds(30) });
 
 // Hybrid AI System (Gemini Nano + Cloud LLM + Router)
 builder.Services.AddSingleton<GeminiNanoProvider>(sp =>
@@ -33,7 +38,6 @@ builder.Services.AddSingleton<CloudLLMProvider>(sp =>
         builder.Configuration["CloudLLM:ApiKey"],
         builder.Configuration["CloudLLM:Endpoint"],
         builder.Configuration["CloudLLM:Model"]));
-builder.Services.AddSingleton<HttpClient>();
 builder.Services.AddSingleton<AIRouter>();
 
 // Translate Module (Gemini Nano powered - zero cost)

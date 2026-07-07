@@ -1,10 +1,11 @@
-using System.Windows;
-using System.Windows.Media;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using TooltipAI.Core.Services;
 
 namespace TooltipAI.UI.Views;
 
-public partial class LicenseWindow : Window
+public sealed partial class LicenseWindow : Window
 {
     private readonly LicenseService _licenseService;
     private readonly UsageMeteringService _usageService;
@@ -22,30 +23,33 @@ public partial class LicenseWindow : Window
 
     private void LoadLicenseStatus()
     {
-        var license = _licenseService.GetCurrentLicense();
-        
-        if (license != null && license.IsActive)
+        if (_licenseService.IsLicensed)
         {
             TxtStatus.Text = "Activated";
-            TxtStatus.Foreground = Brushes.Green;
-            TxtTier.Text = license.Tier;
-            TxtExpiry.Text = license.ExpiresAt.ToString("yyyy-MM-dd");
+            TxtStatus.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Green);
+            TxtTier.Text = "Pro";
+            TxtExpiry.Text = _licenseService.GetLicenseStatusMessage();
             
             BtnActivate.IsEnabled = false;
             BtnDeactivate.IsEnabled = true;
+            GrpUsage.Visibility = Visibility.Collapsed;
+        }
+        else if (_licenseService.IsTrialActive)
+        {
+            TxtStatus.Text = "Trial Active";
+            TxtStatus.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Orange);
+            TxtTier.Text = "Free (Trial)";
+            TxtExpiry.Text = $"{_licenseService.GetRemainingTrialDays()} days remaining";
             
-            // Hide usage for paid tiers
-            if (license.Tier != "free")
-            {
-                GrpUsage.Visibility = Visibility.Collapsed;
-            }
+            BtnActivate.IsEnabled = true;
+            BtnDeactivate.IsEnabled = false;
         }
         else
         {
             TxtStatus.Text = "Not Activated";
-            TxtStatus.Foreground = Brushes.Gray;
+            TxtStatus.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray);
             TxtTier.Text = "Free";
-            TxtExpiry.Text = "N/A";
+            TxtExpiry.Text = "Trial expired";
             
             BtnActivate.IsEnabled = true;
             BtnDeactivate.IsEnabled = false;
@@ -60,15 +64,15 @@ public partial class LicenseWindow : Window
         
         if (stats.RemainingToday == 0)
         {
-            TxtRemaining.Foreground = Brushes.Red;
+            TxtRemaining.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Red);
         }
         else if (stats.RemainingToday <= 3)
         {
-            TxtRemaining.Foreground = Brushes.Orange;
+            TxtRemaining.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Orange);
         }
         else
         {
-            TxtRemaining.Foreground = Brushes.Green;
+            TxtRemaining.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Green);
         }
     }
 
@@ -84,18 +88,17 @@ public partial class LicenseWindow : Window
 
         try
         {
-            var result = await _licenseService.ValidateLicenseAsync(licenseKey);
+            var success = _licenseService.ActivateLicense(licenseKey);
             
-            if (result.Valid)
+            if (success)
             {
-                _licenseService.SaveLicense(licenseKey, result.Tier ?? "pro", result.ExpiresAt ?? DateTime.UtcNow.AddMonths(1));
                 ShowMessage("License activated successfully!", true);
                 LoadLicenseStatus();
                 LoadUsageStats();
             }
             else
             {
-                ShowMessage($"Invalid license: {result.Error ?? "Unknown error"}", false);
+                ShowMessage("Invalid license key. Please check and try again.", false);
             }
         }
         catch (Exception ex)
@@ -104,17 +107,23 @@ public partial class LicenseWindow : Window
         }
     }
 
-    private void BtnDeactivate_Click(object sender, RoutedEventArgs e)
+    private async void BtnDeactivate_Click(object sender, RoutedEventArgs e)
     {
-        var result = MessageBox.Show(
-            "Are you sure you want to deactivate your license?",
-            "Confirm Deactivation",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Question);
-        
-        if (result == MessageBoxResult.Yes)
+        var dialog = new ContentDialog
         {
-            _licenseService.ClearLicense();
+            Title = "Confirm Deactivation",
+            Content = "Are you sure you want to deactivate your license?",
+            PrimaryButtonText = "Yes",
+            CloseButtonText = "Cancel",
+            DefaultButton = ContentDialogButton.Close,
+            XamlRoot = this.Content.XamlRoot
+        };
+
+        var result = await dialog.ShowAsync();
+        
+        if (result == ContentDialogResult.Primary)
+        {
+            _licenseService.StartTrial();
             ShowMessage("License deactivated.", true);
             LoadLicenseStatus();
             LoadUsageStats();
@@ -129,10 +138,11 @@ public partial class LicenseWindow : Window
     private void ShowMessage(string message, bool isSuccess)
     {
         TxtMessage.Text = message;
-        TxtMessage.Foreground = isSuccess ? Brushes.Green : Brushes.Red;
+        TxtMessage.Foreground = new SolidColorBrush(
+            isSuccess ? Microsoft.UI.Colors.Green : Microsoft.UI.Colors.Red);
     }
 
-    protected override void OnClosed(EventArgs e)
+    protected override void OnClosed(WindowEventArgs e)
     {
         _usageService.Dispose();
         base.OnClosed(e);

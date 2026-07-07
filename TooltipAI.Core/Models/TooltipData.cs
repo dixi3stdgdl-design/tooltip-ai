@@ -8,6 +8,9 @@ public class TooltipData
 {
     public ElementInfo Element { get; set; } = new();
 
+    // Mode indicator
+    public string? Mode { get; set; }
+
     // Enriched context fields (replaces AI-specific fields)
     public string? EnrichedContext { get; set; }
     public string? FunctionHint { get; set; }
