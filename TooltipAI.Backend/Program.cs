@@ -94,7 +94,11 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// Only enable HTTPS redirection if not running in a container
+if (!Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER")?.Equals("true", StringComparison.OrdinalIgnoreCase) ?? true)
+{
+    app.UseHttpsRedirection();
+}
 app.UseCors();
 app.MapControllers();
 
