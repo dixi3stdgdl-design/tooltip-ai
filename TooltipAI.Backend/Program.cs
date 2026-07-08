@@ -1,4 +1,3 @@
-using System.Text.Json.Serialization;
 using TooltipAI.Backend.Middleware;
 using TooltipAI.Backend.Services;
 using TooltipAI.Core.AI;
@@ -103,68 +102,21 @@ if (!Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER")?.Equals("
 app.UseCors();
 app.MapControllers();
 
-// Health check for Azure Auto-Scale (returns 200 OK)
-app.MapGet("/health", () => Results.Ok(new HealthResponse(
-    "healthy", "tooltipai-backend", "1.0.0",
-    Environment.OSVersion.ToString(),
-    System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription,
-    DateTime.UtcNow,
-    Environment.GetEnvironmentVariable("WEBSITE_INSTANCE_ID") ?? "local"
-)));
+// Health check for Azure Auto-Scale (returns 200 OK as plain text)
+app.MapGet("/health", () => Results.Content(
+    "{\"status\":\"healthy\",\"service\":\"tooltipai-backend\",\"version\":\"1.0.0\"}",
+    "application/json"
+));
 
 // Readiness probe for Azure
-app.MapGet("/ready", () => Results.Ok(new StatusResponse("ready")));
+app.MapGet("/ready", () => Results.Content("{\"status\":\"ready\"}", "application/json"));
 
-app.MapGet("/", () => {
-    var endpoints = new[] {
-        "GET  /health",
-        "GET  /ready",
-        "POST /api/license/validate",
-        "POST /api/license/generate",
-        "GET  /api/context/{key}",
-        "POST /api/context",
-        "GET  /api/context/stats",
-        "GET  /api/plugins",
-        "GET  /api/plugins/{id}",
-        "POST /api/plugins",
-        "GET  /api/plugins/stats",
-        "POST /api/admin/provision",
-        "GET  /api/admin/users",
-        "PUT  /api/admin/policies",
-        "GET  /api/admin/metrics",
-        "POST /api/admin/rollout",
-        "POST /api/enrich",
-        "GET  /api/enrich/health",
-        "POST /api/telemetry",
-        "GET  /api/telemetry/metrics",
-        "GET  /api/telemetry/health"
-    };
-    return Results.Ok(new RootResponse("TooltipAI Backend", "1.0.0", "Azure Linux 4", endpoints));
-});
+app.MapGet("/", () => Results.Content(
+    "{\"name\":\"TooltipAI Backend\",\"version\":\"1.0.0\",\"platform\":\"Azure Linux 4\"}",
+    "application/json"
+));
 
 app.Run();
 
 // Expose Program class for integration tests
 public partial class Program { }
-
-// Concrete types for JSON serialization (anonymous types fail with .NET 8 source gen)
-public record HealthResponse(
-    [property: JsonPropertyName("status")] string Status,
-    [property: JsonPropertyName("service")] string Service,
-    [property: JsonPropertyName("version")] string Version,
-    [property: JsonPropertyName("os")] string Os,
-    [property: JsonPropertyName("runtime")] string Runtime,
-    [property: JsonPropertyName("timestamp")] DateTime Timestamp,
-    [property: JsonPropertyName("instanceId")] string InstanceId
-);
-
-public record StatusResponse(
-    [property: JsonPropertyName("status")] string Status
-);
-
-public record RootResponse(
-    [property: JsonPropertyName("name")] string Name,
-    [property: JsonPropertyName("version")] string Version,
-    [property: JsonPropertyName("platform")] string Platform,
-    [property: JsonPropertyName("endpoints")] string[] Endpoints
-);
