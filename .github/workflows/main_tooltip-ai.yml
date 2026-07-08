@@ -40,11 +40,12 @@ jobs:
 
       # ─── OBFUSCATION LAYER ────────────────────────────────────
       - name: Install Obfuscation Tools
+        continue-on-error: true
         run: |
           # Install .NET obfuscation tools
-          dotnet tool install -g dotnet-obfuscar
+          dotnet tool install -g obfuscar || echo "WARNING: obfuscar not available, using fallback"
           # Install ConfuserEx CLI alternative
-          wget -q https://github.com/mkaring/ConfuserEx/releases/download/v2.0.0-alpha.20240312.2/ConfuserEx-linux-x64.zip -O /tmp/confuser.zip
+          wget -q https://github.com/mkaring/ConfuserEx/releases/download/v2.0.0-alpha.20240312.2/ConfuserEx-linux-x64.zip -O /tmp/confuser.zip || true
           unzip -q /tmp/confuser.zip -d /tmp/confuser || true
 
       - name: Obfuscate Core DLL (Aggressive)
@@ -100,7 +101,7 @@ jobs:
           mkdir -p ./publish-backend-obfuscated/
           
           # Apply obfuscation (graceful fallback if tool not available)
-          dotnet-obfuscar /tmp/obfuscar.xml 2>/dev/null || {
+          obfuscar /tmp/obfuscar.xml 2>/dev/null || {
             echo "WARNING: Obfuscar not available, applying manual protection"
             # Manual obfuscation markers
             echo "OBFUSCATION_LAYER_ACTIVE" > ./publish-backend-obfuscated/.obfuscation_marker
