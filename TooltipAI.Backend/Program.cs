@@ -1,3 +1,4 @@
+using Microsoft.Azure.Cosmos;
 using TooltipAI.Backend.Middleware;
 using TooltipAI.Backend.Services;
 using TooltipAI.Core.AI;
@@ -12,6 +13,19 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new() { Title = "TooltipAI Backend", Version = "v1" });
 });
+
+// Cosmos DB (optional - falls back to in-memory if not configured)
+var cosmosConnectionString = builder.Configuration.GetConnectionString("CosmosDb");
+if (!string.IsNullOrEmpty(cosmosConnectionString))
+{
+    builder.Services.AddSingleton<CosmosClient>(sp =>
+    {
+        return new CosmosClient(cosmosConnectionString, new CosmosClientOptions
+        {
+            ConnectionMode = ConnectionMode.Gateway
+        });
+    });
+}
 
 // Core services
 builder.Services.AddSingleton<AuthService>();
