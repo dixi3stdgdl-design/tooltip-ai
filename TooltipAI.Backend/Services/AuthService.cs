@@ -8,27 +8,57 @@ namespace TooltipAI.Backend.Services;
 public class AuthService
 {
     private readonly ILogger<AuthService> _logger;
-    private readonly Container _usersContainer;
+    private readonly Container? _usersContainer;
+    private readonly ConcurrentDictionary<string, UserDocument> _inMemoryUsers = new();
     private readonly ConcurrentDictionary<string, TokenRecord> _tokens = new();
+    private readonly bool _useCosmos;
 
-    public AuthService(ILogger<AuthService> logger, CosmosClient cosmosClient)
+    public AuthService(ILogger<AuthService> logger, CosmosClient? cosmosClient)
     {
         _logger = logger;
-        _usersContainer = cosmosClient.GetDatabase("tooltipai").GetContainer("users");
+        if (cosmosClient != null)
+        {
+            try
+            {
+                _usersContainer = cosmosClient.GetDatabase("tooltipai").GetContainer("users");
+                _useCosmos = true;
+                _logger.LogInformation("Using Cosmos DB for auth storage");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to initialize Cosmos DB container, using in-memory storage");
+                _useCosmos = false;
+            }
+        }
+        else
+        {
+            _logger.LogWarning("Cosmos DB not configured, using in-memory storage");
+            _useCosmos = false;
+        }
     }
 
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
     {
         var email = request.Email.ToLowerInvariant();
 
-        try
+        if (_useCosmos && _usersContainer != null)
         {
-            await _usersContainer.ReadItemAsync<UserDocument>(email, new PartitionKey(email));
-            return new AuthResponse { Success = false, Error = "Email already registered" };
+            try
+            {
+                await _usersContainer.ReadItemAsync<UserDocument>(email, new PartitionKey(email));
+                return new AuthResponse { Success = false, Error = "Email already registered" };
+            }
+            catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                // User doesn't exist, proceed with registration
+            }
         }
-        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        else
         {
-            // User doesn't exist, proceed with registration
+            if (_inMemoryUsers.ContainsKey(email))
+            {
+                return new AuthResponse { Success = false, Error = "Email already registered" };
+            }
         }
 
         var userId = Guid.NewGuid().ToString("N");
@@ -44,9 +74,16 @@ public class AuthService
             CreatedAt = DateTime.UtcNow
         };
 
-        await _usersContainer.CreateItemAsync(user, new PartitionKey(email));
-        _logger.LogInformation("User registered: {Email}", user.Email);
+        if (_useCosmos && _usersContainer != null)
+        {
+            await _usersContainer.CreateItemAsync(user, new PartitionKey(email));
+        }
+        else
+        {
+            _inMemoryUsers[email] = user;
+        }
 
+        _logger.LogInformation("User registered: {Email}", user.Email);
         return GenerateTokens(user);
     }
 
@@ -54,13 +91,26 @@ public class AuthService
     {
         var email = request.Email.ToLowerInvariant();
 
-        UserDocument? user;
-        try
+        UserDocument? user = null;
+
+        if (_useCosmos && _usersContainer != null)
         {
-            var response = await _usersContainer.ReadItemAsync<UserDocument>(email, new PartitionKey(email));
-            user = response.Resource;
+            try
+            {
+                var response = await _usersContainer.ReadItemAsync<UserDocument>(email, new PartitionKey(email));
+                user = response.Resource;
+            }
+            catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return new AuthResponse { Success = false, Error = "Invalid email or password" };
+            }
         }
-        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        else
+        {
+            _inMemoryUsers.TryGetValue(email, out user);
+        }
+
+        if (user == null)
         {
             return new AuthResponse { Success = false, Error = "Invalid email or password" };
         }
@@ -71,9 +121,13 @@ public class AuthService
         }
 
         user.LastLoginAt = DateTime.UtcNow;
-        await _usersContainer.UpsertItemAsync(user, new PartitionKey(email));
-        _logger.LogInformation("User logged in: {Email}", user.Email);
 
+        if (_useCosmos && _usersContainer != null)
+        {
+            await _usersContainer.UpsertItemAsync(user, new PartitionKey(email));
+        }
+
+        _logger.LogInformation("User logged in: {Email}", user.Email);
         return GenerateTokens(user);
     }
 
@@ -92,40 +146,66 @@ public class AuthService
 
         _tokens.TryRemove(refreshToken, out _);
 
-        // Fetch user from Cosmos DB
         var email = record.Email;
-        try
+        UserDocument? user = null;
+
+        if (_useCosmos && _usersContainer != null)
         {
-            var response = _usersContainer.ReadItemAsync<UserDocument>(email, new PartitionKey(email)).GetAwaiter().GetResult();
-            return GenerateTokens(response.Resource);
+            try
+            {
+                var response = _usersContainer.ReadItemAsync<UserDocument>(email, new PartitionKey(email)).GetAwaiter().GetResult();
+                user = response.Resource;
+            }
+            catch (CosmosException)
+            {
+                return new AuthResponse { Success = false, Error = "User not found" };
+            }
         }
-        catch (CosmosException)
+        else
+        {
+            _inMemoryUsers.TryGetValue(email, out user);
+        }
+
+        if (user == null)
         {
             return new AuthResponse { Success = false, Error = "User not found" };
         }
+
+        return GenerateTokens(user);
     }
 
     public async Task<UserProfile?> GetProfileAsync(string email)
     {
-        try
-        {
-            var response = await _usersContainer.ReadItemAsync<UserDocument>(email.ToLowerInvariant(), new PartitionKey(email.ToLowerInvariant()));
-            var user = response.Resource;
+        UserDocument? user = null;
 
-            return new UserProfile
-            {
-                Id = user.Id,
-                Email = user.Email,
-                DisplayName = user.DisplayName,
-                Tier = user.Tier,
-                CreatedAt = user.CreatedAt,
-                LastLoginAt = user.LastLoginAt
-            };
-        }
-        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        if (_useCosmos && _usersContainer != null)
         {
-            return null;
+            try
+            {
+                var response = await _usersContainer.ReadItemAsync<UserDocument>(email.ToLowerInvariant(), new PartitionKey(email.ToLowerInvariant()));
+                user = response.Resource;
+            }
+            catch (CosmosException)
+            {
+                return null;
+            }
         }
+        else
+        {
+            _inMemoryUsers.TryGetValue(email.ToLowerInvariant(), out user);
+        }
+
+        if (user == null) return null;
+
+        return new UserProfile
+        {
+            Id = user.Id,
+            Email = user.Email,
+            DisplayName = user.DisplayName,
+            Tier = user.Tier,
+            CreatedAt = user.CreatedAt,
+            LastLoginAt = user.LastLoginAt
+        };
     }
 
     public string? ValidateTokenAndGetEmail(string token)

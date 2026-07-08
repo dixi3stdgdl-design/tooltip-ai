@@ -9,15 +9,27 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 
-// Cosmos DB
+// Cosmos DB (optional - falls back to in-memory if not configured)
 builder.Services.AddSingleton(sp =>
 {
-    var connectionString = builder.Configuration.GetConnectionString("CosmosDb")
-        ?? throw new InvalidOperationException("CosmosDb connection string is not configured.");
-    return new CosmosClient(connectionString, new CosmosClientOptions
+    var connectionString = builder.Configuration.GetConnectionString("CosmosDb");
+    if (string.IsNullOrEmpty(connectionString))
     {
-        ConnectionMode = ConnectionMode.Gateway
-    });
+        return null;
+    }
+    try
+    {
+        return new CosmosClient(connectionString, new CosmosClientOptions
+        {
+            ConnectionMode = ConnectionMode.Gateway
+        });
+    }
+    catch (Exception ex)
+    {
+        var logger = sp.GetRequiredService<ILogger<Program>>();
+        logger.LogWarning(ex, "Failed to connect to Cosmos DB, using in-memory storage");
+        return null;
+    }
 });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
