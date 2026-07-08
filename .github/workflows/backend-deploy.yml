@@ -39,9 +39,7 @@ jobs:
           dotnet publish TooltipAI.Backend/TooltipAI.Backend.csproj \
             -c Release \
             -o ./publish \
-            --no-build \
-            -r linux-x64 \
-            --self-contained
+            --no-build
 
       - name: Login to Azure
         uses: azure/login@v2
