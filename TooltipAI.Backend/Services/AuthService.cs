@@ -1,23 +1,17 @@
 using System.Collections.Concurrent;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using System.Security.Cryptography;
-using System.Text;
-using Microsoft.IdentityModel.Tokens;
 using TooltipAI.Backend.Models;
 
 namespace TooltipAI.Backend.Services;
 
 public class AuthService
 {
-    private readonly IConfiguration _config;
     private readonly ILogger<AuthService> _logger;
     private readonly ConcurrentDictionary<string, UserRecord> _users = new();
-    private readonly ConcurrentDictionary<string, RefreshTokenRecord> _refreshTokens = new();
+    private readonly ConcurrentDictionary<string, TokenRecord> _tokens = new();
 
-    public AuthService(IConfiguration config, ILogger<AuthService> logger)
+    public AuthService(ILogger<AuthService> logger)
     {
-        _config = config;
         _logger = logger;
     }
 
@@ -67,14 +61,14 @@ public class AuthService
 
     public AuthResponse RefreshToken(string refreshToken)
     {
-        if (!_refreshTokens.TryGetValue(refreshToken, out var record))
+        if (!_tokens.TryGetValue(refreshToken, out var record))
         {
             return new AuthResponse { Success = false, Error = "Invalid refresh token" };
         }
 
         if (record.ExpiresAt < DateTime.UtcNow)
         {
-            _refreshTokens.TryRemove(refreshToken, out _);
+            _tokens.TryRemove(refreshToken, out _);
             return new AuthResponse { Success = false, Error = "Refresh token expired" };
         }
 
@@ -83,7 +77,7 @@ public class AuthService
             return new AuthResponse { Success = false, Error = "User not found" };
         }
 
-        _refreshTokens.TryRemove(refreshToken, out _);
+        _tokens.TryRemove(refreshToken, out _);
         return GenerateTokens(user);
     }
 
@@ -105,55 +99,30 @@ public class AuthService
 
     public string? ValidateTokenAndGetEmail(string token)
     {
-        try
+        if (_tokens.TryGetValue(token, out var record) && record.ExpiresAt > DateTime.UtcNow)
         {
-            var handler = new JwtSecurityTokenHandler();
-            var jwtToken = handler.ReadJwtToken(token);
-
-            if (jwtToken.ValidTo < DateTime.UtcNow)
-                return null;
-
-            var emailClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "email" || c.Type == ClaimTypes.Email);
-            return emailClaim?.Value;
+            return record.Email;
         }
-        catch
-        {
-            return null;
-        }
-    }
-
-    public ClaimsPrincipal? ValidateToken(string token)
-    {
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(GetJwtSecret()));
-        var handler = new JwtSecurityTokenHandler();
-
-        try
-        {
-            var principal = handler.ValidateToken(token, new TokenValidationParameters
-            {
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = key,
-                ValidateIssuer = true,
-                ValidIssuer = "tooltip-ai-backend",
-                ValidateAudience = true,
-                ValidAudience = "tooltip-ai-client",
-                ValidateLifetime = true,
-                ClockSkew = TimeSpan.FromMinutes(1)
-            }, out _);
-
-            return principal;
-        }
-        catch
-        {
-            return null;
-        }
+        return null;
     }
 
     private AuthResponse GenerateTokens(UserRecord user)
     {
         var expiresAt = DateTime.UtcNow.AddHours(24);
-        var token = GenerateJwtToken(user, expiresAt);
-        var refreshToken = GenerateRefreshToken(user.Email);
+        var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+        var refreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+
+        _tokens[token] = new TokenRecord
+        {
+            Email = user.Email,
+            ExpiresAt = expiresAt
+        };
+
+        _tokens[refreshToken] = new TokenRecord
+        {
+            Email = user.Email,
+            ExpiresAt = DateTime.UtcNow.AddDays(30)
+        };
 
         return new AuthResponse
         {
@@ -164,42 +133,6 @@ public class AuthService
             Email = user.Email,
             DisplayName = user.DisplayName
         };
-    }
-
-    private string GenerateJwtToken(UserRecord user, DateTime expiresAt)
-    {
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(GetJwtSecret()));
-        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-        var claims = new[]
-        {
-            new Claim(ClaimTypes.NameIdentifier, user.Id),
-            new Claim(ClaimTypes.Email, user.Email),
-            new Claim("display_name", user.DisplayName),
-            new Claim("tier", user.Tier),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-        };
-
-        var token = new JwtSecurityToken(
-            issuer: "tooltip-ai-backend",
-            audience: "tooltip-ai-client",
-            claims: claims,
-            expires: expiresAt,
-            signingCredentials: credentials
-        );
-
-        return new JwtSecurityTokenHandler().WriteToken(token);
-    }
-
-    private string GenerateRefreshToken(string email)
-    {
-        var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
-        _refreshTokens[token] = new RefreshTokenRecord
-        {
-            Email = email,
-            ExpiresAt = DateTime.UtcNow.AddDays(30)
-        };
-        return token;
     }
 
     private string HashPassword(string password)
@@ -233,11 +166,6 @@ public class AuthService
         return CryptographicOperations.FixedTimeEquals(hash, testHash);
     }
 
-    private string GetJwtSecret()
-    {
-        return _config["Auth:JwtSecret"] ?? "tooltip-ai-jwt-secret-change-in-production-2026";
-    }
-
     private sealed class UserRecord
     {
         public string Id { get; init; } = string.Empty;
@@ -249,7 +177,7 @@ public class AuthService
         public DateTime? LastLoginAt { get; set; }
     }
 
-    private sealed class RefreshTokenRecord
+    private sealed class TokenRecord
     {
         public string Email { get; init; } = string.Empty;
         public DateTime ExpiresAt { get; init; }
