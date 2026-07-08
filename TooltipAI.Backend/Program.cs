@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using TooltipAI.Backend.Middleware;
 using TooltipAI.Backend.Services;
 using TooltipAI.Core.AI;
@@ -103,30 +104,20 @@ app.UseCors();
 app.MapControllers();
 
 // Health check for Azure Auto-Scale (returns 200 OK)
-app.MapGet("/health", () => Results.Json(new
-{
-    status = "healthy",
-    service = "tooltipai-backend",
-    version = "1.0.0",
-    os = Environment.OSVersion.ToString(),
-    runtime = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription,
-    timestamp = DateTime.UtcNow,
-    instanceId = Environment.GetEnvironmentVariable("WEBSITE_INSTANCE_ID") ?? "local"
-}));
+app.MapGet("/health", () => Results.Ok(new HealthResponse(
+    "healthy", "tooltipai-backend", "1.0.0",
+    Environment.OSVersion.ToString(),
+    System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription,
+    DateTime.UtcNow,
+    Environment.GetEnvironmentVariable("WEBSITE_INSTANCE_ID") ?? "local"
+)));
 
 // Readiness probe for Azure
-app.MapGet("/ready", () => Results.Json(new { status = "ready" }));
+app.MapGet("/ready", () => Results.Ok(new StatusResponse("ready")));
 
-app.MapGet("/", () => Results.Json(new
-{
-    name = "TooltipAI Backend",
-    version = "1.0.0",
-    platform = "Azure Linux 4",
-    endpoints = new[]
-    {
-        "GET  /health",
-        "GET  /ready",
-        "POST /api/license/validate",
+app.MapGet("/", () => Results.Ok(new RootResponse(
+    "TooltipAI Backend", "1.0.0", "Azure Linux 4",
+    new[] { "GET  /health", "GET  /ready", "POST /api/license/validate",
         "POST /api/license/generate",
         "GET  /api/context/{key}",
         "POST /api/context",
@@ -152,3 +143,25 @@ app.Run();
 
 // Expose Program class for integration tests
 public partial class Program { }
+
+// Concrete types for JSON serialization (anonymous types fail with .NET 8 source gen)
+public record HealthResponse(
+    [property: JsonPropertyName("status")] string Status,
+    [property: JsonPropertyName("service")] string Service,
+    [property: JsonPropertyName("version")] string Version,
+    [property: JsonPropertyName("os")] string Os,
+    [property: JsonPropertyName("runtime")] string Runtime,
+    [property: JsonPropertyName("timestamp")] DateTime Timestamp,
+    [property: JsonPropertyName("instanceId")] string InstanceId
+);
+
+public record StatusResponse(
+    [property: JsonPropertyName("status")] string Status
+);
+
+public record RootResponse(
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("version")] string Version,
+    [property: JsonPropertyName("platform")] string Platform,
+    [property: JsonPropertyName("endpoints")] string[] Endpoints
+);
