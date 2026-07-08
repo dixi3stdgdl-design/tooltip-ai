@@ -18,12 +18,12 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("register")]
-    public ActionResult<AuthResponse> Register([FromBody] RegisterRequest request)
+    public async Task<ActionResult<AuthResponse>> Register([FromBody] RegisterRequest request)
     {
         if (!ModelState.IsValid)
             return BadRequest(new AuthResponse { Success = false, Error = "Invalid request" });
 
-        var result = _authService.Register(request);
+        var result = await _authService.RegisterAsync(request);
 
         if (!result.Success)
             return BadRequest(result);
@@ -33,12 +33,12 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
-    public ActionResult<AuthResponse> Login([FromBody] LoginRequest request)
+    public async Task<ActionResult<AuthResponse>> Login([FromBody] LoginRequest request)
     {
         if (!ModelState.IsValid)
             return BadRequest(new AuthResponse { Success = false, Error = "Invalid request" });
 
-        var result = _authService.Login(request);
+        var result = await _authService.LoginAsync(request);
 
         if (!result.Success)
             return Unauthorized(result);
@@ -61,7 +61,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpGet("profile")]
-    public ActionResult<UserProfile> GetProfile([FromHeader(Name = "Authorization")] string? authorization)
+    public async Task<ActionResult<UserProfile>> GetProfile([FromHeader(Name = "Authorization")] string? authorization)
     {
         if (string.IsNullOrEmpty(authorization) || !authorization.StartsWith("Bearer "))
             return Unauthorized();
@@ -72,7 +72,7 @@ public class AuthController : ControllerBase
         if (string.IsNullOrEmpty(email))
             return Unauthorized();
 
-        var profile = _authService.GetProfile(email);
+        var profile = await _authService.GetProfileAsync(email);
         if (profile == null)
             return NotFound();
 
