@@ -103,6 +103,25 @@ public class AuthService
         };
     }
 
+    public string? ValidateTokenAndGetEmail(string token)
+    {
+        try
+        {
+            var handler = new JwtSecurityTokenHandler();
+            var jwtToken = handler.ReadJwtToken(token);
+
+            if (jwtToken.ValidTo < DateTime.UtcNow)
+                return null;
+
+            var emailClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "email" || c.Type == ClaimTypes.Email);
+            return emailClaim?.Value;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     public ClaimsPrincipal? ValidateToken(string token)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(GetJwtSecret()));

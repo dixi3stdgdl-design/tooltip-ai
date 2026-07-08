@@ -1,5 +1,3 @@
-using System.Security.Claims;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TooltipAI.Backend.Models;
 using TooltipAI.Backend.Services;
@@ -62,11 +60,15 @@ public class AuthController : ControllerBase
         return Ok(result);
     }
 
-    [Authorize]
     [HttpGet("profile")]
-    public ActionResult<UserProfile> GetProfile()
+    public ActionResult<UserProfile> GetProfile([FromHeader(Name = "Authorization")] string? authorization)
     {
-        var email = User.FindFirst(ClaimTypes.Email)?.Value;
+        if (string.IsNullOrEmpty(authorization) || !authorization.StartsWith("Bearer "))
+            return Unauthorized();
+
+        var token = authorization.Substring(7);
+        var email = _authService.ValidateTokenAndGetEmail(token);
+
         if (string.IsNullOrEmpty(email))
             return Unauthorized();
 
@@ -77,26 +79,10 @@ public class AuthController : ControllerBase
         return Ok(profile);
     }
 
-    [Authorize]
-    [HttpPost("change-password")]
-    public ActionResult<AuthResponse> ChangePassword([FromBody] ChangePasswordRequest request)
-    {
-        var email = User.FindFirst(ClaimTypes.Email)?.Value;
-        if (string.IsNullOrEmpty(email))
-            return Unauthorized();
-
-        // For now, just return success - implement actual password change logic
-        return Ok(new AuthResponse { Success = true, Email = email });
-    }
-
     [HttpGet("check")]
     public ActionResult<object> Check()
     {
-        return Ok(new
-        {
-            authenticated = User.Identity?.IsAuthenticated ?? false,
-            user = User.Identity?.Name
-        });
+        return Ok(new { status = "ok", service = "auth" });
     }
 }
 
