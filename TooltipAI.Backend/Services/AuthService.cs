@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
-using Microsoft.Azure.Cosmos;
 using TooltipAI.Backend.Models;
 
 namespace TooltipAI.Backend.Services;
@@ -8,109 +7,43 @@ namespace TooltipAI.Backend.Services;
 public class AuthService
 {
     private readonly ILogger<AuthService> _logger;
-    private readonly Container? _usersContainer;
-    private readonly ConcurrentDictionary<string, UserDocument> _inMemoryUsers = new();
+    private readonly ConcurrentDictionary<string, UserRecord> _users = new();
     private readonly ConcurrentDictionary<string, TokenRecord> _tokens = new();
-    private readonly bool _useCosmos;
 
-    public AuthService(ILogger<AuthService> logger, CosmosClient? cosmosClient)
+    public AuthService(ILogger<AuthService> logger)
     {
         _logger = logger;
-        if (cosmosClient != null)
-        {
-            try
-            {
-                _usersContainer = cosmosClient.GetDatabase("tooltipai").GetContainer("users");
-                _useCosmos = true;
-                _logger.LogInformation("Using Cosmos DB for auth storage");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to initialize Cosmos DB container, using in-memory storage");
-                _useCosmos = false;
-            }
-        }
-        else
-        {
-            _logger.LogWarning("Cosmos DB not configured, using in-memory storage");
-            _useCosmos = false;
-        }
     }
 
-    public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
+    public AuthResponse Register(RegisterRequest request)
     {
-        var email = request.Email.ToLowerInvariant();
-
-        if (_useCosmos && _usersContainer != null)
+        if (_users.ContainsKey(request.Email.ToLowerInvariant()))
         {
-            try
-            {
-                await _usersContainer.ReadItemAsync<UserDocument>(email, new PartitionKey(email));
-                return new AuthResponse { Success = false, Error = "Email already registered" };
-            }
-            catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
-                // User doesn't exist, proceed with registration
-            }
-        }
-        else
-        {
-            if (_inMemoryUsers.ContainsKey(email))
-            {
-                return new AuthResponse { Success = false, Error = "Email already registered" };
-            }
+            return new AuthResponse { Success = false, Error = "Email already registered" };
         }
 
         var userId = Guid.NewGuid().ToString("N");
         var passwordHash = HashPassword(request.Password);
 
-        var user = new UserDocument
+        var user = new UserRecord
         {
-            Id = email,
-            Email = email,
+            Id = userId,
+            Email = request.Email.ToLowerInvariant(),
             DisplayName = request.DisplayName ?? request.Email.Split('@')[0],
             PasswordHash = passwordHash,
             Tier = "free",
             CreatedAt = DateTime.UtcNow
         };
 
-        if (_useCosmos && _usersContainer != null)
-        {
-            await _usersContainer.CreateItemAsync(user, new PartitionKey(email));
-        }
-        else
-        {
-            _inMemoryUsers[email] = user;
-        }
-
+        _users[user.Email] = user;
         _logger.LogInformation("User registered: {Email}", user.Email);
+
         return GenerateTokens(user);
     }
 
-    public async Task<AuthResponse> LoginAsync(LoginRequest request)
+    public AuthResponse Login(LoginRequest request)
     {
-        var email = request.Email.ToLowerInvariant();
-
-        UserDocument? user = null;
-
-        if (_useCosmos && _usersContainer != null)
-        {
-            try
-            {
-                var response = await _usersContainer.ReadItemAsync<UserDocument>(email, new PartitionKey(email));
-                user = response.Resource;
-            }
-            catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
-                return new AuthResponse { Success = false, Error = "Invalid email or password" };
-            }
-        }
-        else
-        {
-            _inMemoryUsers.TryGetValue(email, out user);
-        }
-
-        if (user == null)
+        if (!_users.TryGetValue(request.Email.ToLowerInvariant(), out var user))
         {
             return new AuthResponse { Success = false, Error = "Invalid email or password" };
         }
@@ -121,13 +54,8 @@ public class AuthService
         }
 
         user.LastLoginAt = DateTime.UtcNow;
-
-        if (_useCosmos && _usersContainer != null)
-        {
-            await _usersContainer.UpsertItemAsync(user, new PartitionKey(email));
-        }
-
         _logger.LogInformation("User logged in: {Email}", user.Email);
+
         return GenerateTokens(user);
     }
 
@@ -144,58 +72,19 @@ public class AuthService
             return new AuthResponse { Success = false, Error = "Refresh token expired" };
         }
 
-        _tokens.TryRemove(refreshToken, out _);
-
-        var email = record.Email;
-        UserDocument? user = null;
-
-        if (_useCosmos && _usersContainer != null)
-        {
-            try
-            {
-                var response = _usersContainer.ReadItemAsync<UserDocument>(email, new PartitionKey(email)).GetAwaiter().GetResult();
-                user = response.Resource;
-            }
-            catch (CosmosException)
-            {
-                return new AuthResponse { Success = false, Error = "User not found" };
-            }
-        }
-        else
-        {
-            _inMemoryUsers.TryGetValue(email, out user);
-        }
-
-        if (user == null)
+        if (!_users.TryGetValue(record.Email, out var user))
         {
             return new AuthResponse { Success = false, Error = "User not found" };
         }
 
+        _tokens.TryRemove(refreshToken, out _);
         return GenerateTokens(user);
     }
 
-    public async Task<UserProfile?> GetProfileAsync(string email)
+    public UserProfile? GetProfile(string email)
     {
-        UserDocument? user = null;
-
-        if (_useCosmos && _usersContainer != null)
-        {
-            try
-            {
-                var response = await _usersContainer.ReadItemAsync<UserDocument>(email.ToLowerInvariant(), new PartitionKey(email.ToLowerInvariant()));
-                user = response.Resource;
-            }
-            catch (CosmosException)
-            {
-                return null;
-            }
-        }
-        else
-        {
-            _inMemoryUsers.TryGetValue(email.ToLowerInvariant(), out user);
-        }
-
-        if (user == null) return null;
+        if (!_users.TryGetValue(email.ToLowerInvariant(), out var user))
+            return null;
 
         return new UserProfile
         {
@@ -217,7 +106,7 @@ public class AuthService
         return null;
     }
 
-    private AuthResponse GenerateTokens(UserDocument user)
+    private AuthResponse GenerateTokens(UserRecord user)
     {
         var expiresAt = DateTime.UtcNow.AddHours(24);
         var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
@@ -277,14 +166,14 @@ public class AuthService
         return CryptographicOperations.FixedTimeEquals(hash, testHash);
     }
 
-    private sealed class UserDocument
+    private sealed class UserRecord
     {
-        public string Id { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
-        public string DisplayName { get; set; } = string.Empty;
-        public string PasswordHash { get; set; } = string.Empty;
-        public string Tier { get; set; } = "free";
-        public DateTime CreatedAt { get; set; }
+        public string Id { get; init; } = string.Empty;
+        public string Email { get; init; } = string.Empty;
+        public string DisplayName { get; init; } = string.Empty;
+        public string PasswordHash { get; init; } = string.Empty;
+        public string Tier { get; init; } = "free";
+        public DateTime CreatedAt { get; init; }
         public DateTime? LastLoginAt { get; set; }
     }
 

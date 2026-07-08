@@ -1,4 +1,3 @@
-using Microsoft.Azure.Cosmos;
 using TooltipAI.Backend.Middleware;
 using TooltipAI.Backend.Services;
 using TooltipAI.Core.AI;
@@ -8,29 +7,6 @@ using TooltipAI.Core.Translate;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
-
-// Cosmos DB (optional - falls back to in-memory if not configured)
-builder.Services.AddSingleton(sp =>
-{
-    var connectionString = builder.Configuration.GetConnectionString("CosmosDb");
-    if (string.IsNullOrEmpty(connectionString))
-    {
-        return (CosmosClient?)null;
-    }
-    try
-    {
-        return new CosmosClient(connectionString, new CosmosClientOptions
-        {
-            ConnectionMode = ConnectionMode.Gateway
-        });
-    }
-    catch (Exception ex)
-    {
-        var logger = sp.GetRequiredService<ILogger<Program>>();
-        logger.LogWarning(ex, "Failed to connect to Cosmos DB, using in-memory storage");
-        return (CosmosClient?)null;
-    }
-});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
