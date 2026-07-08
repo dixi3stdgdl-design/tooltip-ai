@@ -1,4 +1,3 @@
-using Microsoft.Azure.Cosmos;
 using TooltipAI.Backend.Middleware;
 using TooltipAI.Backend.Services;
 using TooltipAI.Core.AI;
@@ -8,17 +7,6 @@ using TooltipAI.Core.Translate;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
-
-// Cosmos DB
-builder.Services.AddSingleton(sp =>
-{
-    var connectionString = builder.Configuration.GetConnectionString("CosmosDb")
-        ?? throw new InvalidOperationException("CosmosDb connection string is not configured.");
-    return new CosmosClient(connectionString, new CosmosClientOptions
-    {
-        ConnectionMode = ConnectionMode.Gateway
-    });
-});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {

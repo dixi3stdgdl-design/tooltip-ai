@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
-using Microsoft.Azure.Cosmos;
 using TooltipAI.Backend.Models;
 
 namespace TooltipAI.Backend.Services;
@@ -8,59 +7,43 @@ namespace TooltipAI.Backend.Services;
 public class AuthService
 {
     private readonly ILogger<AuthService> _logger;
-    private readonly Container _usersContainer;
+    private readonly ConcurrentDictionary<string, UserRecord> _users = new();
     private readonly ConcurrentDictionary<string, TokenRecord> _tokens = new();
 
-    public AuthService(ILogger<AuthService> logger, CosmosClient cosmosClient)
+    public AuthService(ILogger<AuthService> logger)
     {
         _logger = logger;
-        _usersContainer = cosmosClient.GetDatabase("tooltipai").GetContainer("users");
     }
 
-    public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
+    public AuthResponse Register(RegisterRequest request)
     {
-        var email = request.Email.ToLowerInvariant();
-
-        try
+        if (_users.ContainsKey(request.Email.ToLowerInvariant()))
         {
-            await _usersContainer.ReadItemAsync<UserDocument>(email, new PartitionKey(email));
             return new AuthResponse { Success = false, Error = "Email already registered" };
-        }
-        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-        {
-            // User doesn't exist, proceed with registration
         }
 
         var userId = Guid.NewGuid().ToString("N");
         var passwordHash = HashPassword(request.Password);
 
-        var user = new UserDocument
+        var user = new UserRecord
         {
-            Id = email,
-            Email = email,
+            Id = userId,
+            Email = request.Email.ToLowerInvariant(),
             DisplayName = request.DisplayName ?? request.Email.Split('@')[0],
             PasswordHash = passwordHash,
             Tier = "free",
             CreatedAt = DateTime.UtcNow
         };
 
-        await _usersContainer.CreateItemAsync(user, new PartitionKey(email));
+        _users[user.Email] = user;
         _logger.LogInformation("User registered: {Email}", user.Email);
 
         return GenerateTokens(user);
     }
 
-    public async Task<AuthResponse> LoginAsync(LoginRequest request)
+    public AuthResponse Login(LoginRequest request)
     {
-        var email = request.Email.ToLowerInvariant();
-
-        UserDocument? user;
-        try
-        {
-            var response = await _usersContainer.ReadItemAsync<UserDocument>(email, new PartitionKey(email));
-            user = response.Resource;
-        }
-        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        if (!_users.TryGetValue(request.Email.ToLowerInvariant(), out var user))
         {
             return new AuthResponse { Success = false, Error = "Invalid email or password" };
         }
@@ -71,7 +54,6 @@ public class AuthService
         }
 
         user.LastLoginAt = DateTime.UtcNow;
-        await _usersContainer.UpsertItemAsync(user, new PartitionKey(email));
         _logger.LogInformation("User logged in: {Email}", user.Email);
 
         return GenerateTokens(user);
@@ -90,42 +72,29 @@ public class AuthService
             return new AuthResponse { Success = false, Error = "Refresh token expired" };
         }
 
-        _tokens.TryRemove(refreshToken, out _);
-
-        // Fetch user from Cosmos DB
-        var email = record.Email;
-        try
-        {
-            var response = _usersContainer.ReadItemAsync<UserDocument>(email, new PartitionKey(email)).GetAwaiter().GetResult();
-            return GenerateTokens(response.Resource);
-        }
-        catch (CosmosException)
+        if (!_users.TryGetValue(record.Email, out var user))
         {
             return new AuthResponse { Success = false, Error = "User not found" };
         }
+
+        _tokens.TryRemove(refreshToken, out _);
+        return GenerateTokens(user);
     }
 
-    public async Task<UserProfile?> GetProfileAsync(string email)
+    public UserProfile? GetProfile(string email)
     {
-        try
-        {
-            var response = await _usersContainer.ReadItemAsync<UserDocument>(email.ToLowerInvariant(), new PartitionKey(email.ToLowerInvariant()));
-            var user = response.Resource;
-
-            return new UserProfile
-            {
-                Id = user.Id,
-                Email = user.Email,
-                DisplayName = user.DisplayName,
-                Tier = user.Tier,
-                CreatedAt = user.CreatedAt,
-                LastLoginAt = user.LastLoginAt
-            };
-        }
-        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-        {
+        if (!_users.TryGetValue(email.ToLowerInvariant(), out var user))
             return null;
-        }
+
+        return new UserProfile
+        {
+            Id = user.Id,
+            Email = user.Email,
+            DisplayName = user.DisplayName,
+            Tier = user.Tier,
+            CreatedAt = user.CreatedAt,
+            LastLoginAt = user.LastLoginAt
+        };
     }
 
     public string? ValidateTokenAndGetEmail(string token)
@@ -137,7 +106,7 @@ public class AuthService
         return null;
     }
 
-    private AuthResponse GenerateTokens(UserDocument user)
+    private AuthResponse GenerateTokens(UserRecord user)
     {
         var expiresAt = DateTime.UtcNow.AddHours(24);
         var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
@@ -197,14 +166,14 @@ public class AuthService
         return CryptographicOperations.FixedTimeEquals(hash, testHash);
     }
 
-    private sealed class UserDocument
+    private sealed class UserRecord
     {
-        public string Id { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
-        public string DisplayName { get; set; } = string.Empty;
-        public string PasswordHash { get; set; } = string.Empty;
-        public string Tier { get; set; } = "free";
-        public DateTime CreatedAt { get; set; }
+        public string Id { get; init; } = string.Empty;
+        public string Email { get; init; } = string.Empty;
+        public string DisplayName { get; init; } = string.Empty;
+        public string PasswordHash { get; init; } = string.Empty;
+        public string Tier { get; init; } = "free";
+        public DateTime CreatedAt { get; init; }
         public DateTime? LastLoginAt { get; set; }
     }
 
