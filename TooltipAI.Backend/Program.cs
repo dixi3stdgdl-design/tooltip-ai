@@ -10,7 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 
 // Cosmos DB (optional - falls back to in-memory if not configured)
-builder.Services.AddSingleton(sp =>
+builder.Services.AddSingleton<CosmosClient?>(sp =>
 {
     var connectionString = builder.Configuration.GetConnectionString("CosmosDb");
     if (string.IsNullOrEmpty(connectionString))
