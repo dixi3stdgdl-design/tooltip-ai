@@ -10,12 +10,12 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 
 // Cosmos DB (optional - falls back to in-memory if not configured)
-builder.Services.AddSingleton<CosmosClient?>(sp =>
+builder.Services.AddSingleton(sp =>
 {
     var connectionString = builder.Configuration.GetConnectionString("CosmosDb");
     if (string.IsNullOrEmpty(connectionString))
     {
-        return null;
+        return (CosmosClient?)null;
     }
     try
     {
@@ -28,7 +28,7 @@ builder.Services.AddSingleton<CosmosClient?>(sp =>
     {
         var logger = sp.GetRequiredService<ILogger<Program>>();
         logger.LogWarning(ex, "Failed to connect to Cosmos DB, using in-memory storage");
-        return null;
+        return (CosmosClient?)null;
     }
 });
 builder.Services.AddEndpointsApiExplorer();
