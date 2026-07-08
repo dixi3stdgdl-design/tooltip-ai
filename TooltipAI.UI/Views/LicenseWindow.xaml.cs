@@ -14,6 +14,9 @@ public sealed partial class LicenseWindow : Window
     {
         InitializeComponent();
         
+        // Set window size (WinUI 3 doesn't support Width/Height in XAML)
+        this.AppWindow.Resize(new Windows.Graphics.SizeInt32 { Width = 450, Height = 350 });
+        
         _licenseService = new LicenseService();
         _usageService = new UsageMeteringService();
         

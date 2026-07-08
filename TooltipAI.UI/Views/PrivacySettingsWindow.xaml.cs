@@ -13,6 +13,9 @@ public sealed partial class PrivacySettingsWindow : Window
     {
         InitializeComponent();
         
+        // Set window size (WinUI 3 doesn't support Width/Height in XAML)
+        this.AppWindow.Resize(new Windows.Graphics.SizeInt32 { Width = 500, Height = 450 });
+        
         _consentManager = new ConsentManager();
         _blacklistService = new AppBlacklistService();
         
