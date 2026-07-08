@@ -237,6 +237,7 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_9EEC63FAF6F244E7896E2879019989BC }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_87A5E93DC4384FD192D1298AEEB4D9C7 }}
 
+
       - name: Install Azure CLI
         run: |
           curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
@@ -252,6 +253,7 @@ jobs:
           echo "Outbound IP: $IP"
 
       - name: Configure custom domain + SSL
+        continue-on-error: true
         run: |
           RG="${{ steps.webapp-info.outputs.resource_group }}"
           APP="${{ env.AZURE_WEBAPP_NAME }}"
