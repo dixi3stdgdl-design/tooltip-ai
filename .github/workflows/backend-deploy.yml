@@ -1,0 +1,63 @@
+name: Backend — Deploy to Azure
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'TooltipAI.Backend/**'
+      - '.github/workflows/backend-deploy.yml'
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  AZURE_WEBAPP_NAME: 'tooltip-ai'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore
+        run: dotnet restore TooltipAI.Backend/TooltipAI.Backend.csproj
+
+      - name: Build
+        run: dotnet build TooltipAI.Backend/TooltipAI.Backend.csproj -c Release --no-restore
+
+      - name: Publish
+        run: |
+          dotnet publish TooltipAI.Backend/TooltipAI.Backend.csproj \
+            -c Release \
+            -o ./publish \
+            --no-build \
+            -r linux-x64 \
+            --self-contained
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_5AD4A456147D40B2B06C88136175CCF8 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_9EEC63FAF6F244E7896E2879019989BC }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_87A5E93DC4384FD192D1298AEEB4D9C7 }}
+
+      - name: Deploy
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          slot-name: 'Production'
+          package: ./publish
+
+      - name: Verify
+        run: |
+          sleep 30
+          curl -sf https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/health || echo "Health check failed"
