@@ -103,7 +103,7 @@ app.UseCors();
 app.MapControllers();
 
 // Health check for Azure Auto-Scale (returns 200 OK)
-app.MapGet("/health", () => Results.Ok(new
+app.MapGet("/health", () => Results.Json(new
 {
     status = "healthy",
     service = "tooltipai-backend",
@@ -115,9 +115,9 @@ app.MapGet("/health", () => Results.Ok(new
 }));
 
 // Readiness probe for Azure
-app.MapGet("/ready", () => Results.Ok(new { status = "ready" }));
+app.MapGet("/ready", () => Results.Json(new { status = "ready" }));
 
-app.MapGet("/", () => Results.Ok(new
+app.MapGet("/", () => Results.Json(new
 {
     name = "TooltipAI Backend",
     version = "1.0.0",
