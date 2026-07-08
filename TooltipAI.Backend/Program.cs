@@ -115,9 +115,11 @@ app.MapGet("/health", () => Results.Ok(new HealthResponse(
 // Readiness probe for Azure
 app.MapGet("/ready", () => Results.Ok(new StatusResponse("ready")));
 
-app.MapGet("/", () => Results.Ok(new RootResponse(
-    "TooltipAI Backend", "1.0.0", "Azure Linux 4",
-    new[] { "GET  /health", "GET  /ready", "POST /api/license/validate",
+app.MapGet("/", () => {
+    var endpoints = new[] {
+        "GET  /health",
+        "GET  /ready",
+        "POST /api/license/validate",
         "POST /api/license/generate",
         "GET  /api/context/{key}",
         "POST /api/context",
@@ -136,8 +138,9 @@ app.MapGet("/", () => Results.Ok(new RootResponse(
         "POST /api/telemetry",
         "GET  /api/telemetry/metrics",
         "GET  /api/telemetry/health"
-    }
-}));
+    };
+    return Results.Ok(new RootResponse("TooltipAI Backend", "1.0.0", "Azure Linux 4", endpoints));
+});
 
 app.Run();
 
