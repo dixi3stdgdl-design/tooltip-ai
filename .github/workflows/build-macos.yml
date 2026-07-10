@@ -34,10 +34,10 @@ jobs:
         run: dotnet workload install macos
 
       - name: Restore
-        run: dotnet restore TooltipAI.Platform.Mac/TooltipAI.Platform.Mac.csproj
+        run: dotnet restore TooltipAI.Platform.Mac/TooltipAI.Platform.Mac.csproj -p:CheckEolTargetFramework=false
 
       - name: Build Core
-        run: dotnet build TooltipAI.Core/TooltipAI.Core.csproj -c Release --no-restore
+        run: dotnet build TooltipAI.Core/TooltipAI.Core.csproj -c Release --no-restore -p:CheckEolTargetFramework=false
 
       - name: Publish
         run: |
@@ -48,6 +48,7 @@ jobs:
             -p:PublishTrimmed=true \
             -p:PublishSingleFile=true \
             -p:AssemblyName=tooltipai \
+            -p:CheckEolTargetFramework=false \
             -o ./publish-${{ matrix.runtime }}
 
       - name: Create App Bundle
