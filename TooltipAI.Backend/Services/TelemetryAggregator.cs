@@ -108,4 +108,60 @@ public class TelemetryAggregator
             _logger.LogDebug("Cleaned up {Count} old telemetry events", keysToRemove.Count);
         }
     }
+
+    public TenantMetrics GetTenantMetrics(string tenantId, string period)
+    {
+        var cutoff = GetCutoffDate(period);
+        var tenantEvents = _events.Values
+            .Where(e => e.TenantId == tenantId && e.Timestamp >= cutoff)
+            .ToList();
+
+        var uniqueUsers = tenantEvents
+            .Where(e => !string.IsNullOrEmpty(e.UserId))
+            .Select(e => e.UserId)
+            .Distinct()
+            .Count();
+
+        var totalTooltips = tenantEvents.Count(e => e.EventType == "tooltip.shown");
+        var enrichmentUsage = tenantEvents.Count(e => e.EventType == "enrichment.used");
+        var feedbackEvents = tenantEvents.Where(e => e.EventType == "tooltip.feedback").ToList();
+        var positiveFeedback = feedbackEvents.Count(e =>
+            e.Properties?.ContainsKey("useful") == true &&
+            e.Properties["useful"] == "true");
+
+        var sevenDayCutoff = DateTime.UtcNow.AddDays(-7);
+        var thirtyDayCutoff = DateTime.UtcNow.AddDays(-30);
+        var sevenDayUsers = tenantEvents
+            .Where(e => e.Timestamp >= sevenDayCutoff && !string.IsNullOrEmpty(e.UserId))
+            .Select(e => e.UserId)
+            .Distinct()
+            .Count();
+        var thirtyDayUsers = tenantEvents
+            .Where(e => e.Timestamp >= thirtyDayCutoff && !string.IsNullOrEmpty(e.UserId))
+            .Select(e => e.UserId)
+            .Distinct()
+            .Count();
+
+        return new TenantMetrics
+        {
+            TenantId = tenantId,
+            Period = period,
+            ActiveUsers = uniqueUsers,
+            TotalTooltipsShown = totalTooltips,
+            AverageTooltipsPerUser = uniqueUsers > 0 ? (double)totalTooltips / uniqueUsers : 0,
+            EnrichmentUsageRate = totalTooltips > 0 ? (double)enrichmentUsage / totalTooltips : 0,
+            Retention7Day = uniqueUsers > 0 ? (double)sevenDayUsers / uniqueUsers : 0,
+            Retention30Day = uniqueUsers > 0 ? (double)thirtyDayUsers / uniqueUsers : 0
+        };
+    }
+
+    public int GetActiveUserCount(int sinceMinutes)
+    {
+        var cutoff = DateTime.UtcNow.AddMinutes(-sinceMinutes);
+        return _events.Values
+            .Where(e => e.Timestamp >= cutoff && !string.IsNullOrEmpty(e.UserId))
+            .Select(e => e.UserId)
+            .Distinct()
+            .Count();
+    }
 }

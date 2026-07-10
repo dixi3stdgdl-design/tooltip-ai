@@ -9,7 +9,7 @@
 <Obfuscator>
   <!-- Input/Output paths -->
   <Input file="publish-clean/TooltipAI.Core.dll" />
-  <OutputDirectory>publish-obfuscated" />
+  <OutputDirectory>publish-obfuscated</OutputDirectory>
 
   <!-- Log file -->
   <LogFile path="obfuscation.log" />

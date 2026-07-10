@@ -37,7 +37,7 @@ Description: Unlimited tooltips, AI enrichment, keyboard shortcuts, custom theme
 ```
 Name: Tooltip AI Pro (Annual)
 Type: Subscription
-Price: $47.88 USD (equivalent to $3.99/month)
+Price: $47.88 USD (equivalent to $3.99/month, 20% off $4.99)
 Billing: Annual
 Description: Same as Pro Monthly with 20% discount
 ```

@@ -62,7 +62,7 @@ RUN if [ "$OBFUSCATE" = "true" ]; then \
 <?xml version="1.0" encoding="utf-8"?>
 <Obfuscator>
   <Input file="TooltipAI.Core.dll" />
-  <OutputDirectory>output" />
+  <OutputDirectory>output</OutputDirectory>
   
   <Module>
     <Attribute xml-name="Obfuscator.ConfigurationAttribute" feature="true" />

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 
 namespace TooltipAI.Core.Services;
 
@@ -9,11 +10,13 @@ public class SettingsService : IDisposable
     private readonly object _lock = new();
     private AppSettings _settings;
     private DateTime _lastLoad = DateTime.MinValue;
+    private readonly ILogger? _logger;
 
     public event Action<AppSettings>? SettingsChanged;
 
-    public SettingsService(string? customPath = null)
+    public SettingsService(string? customPath = null, ILogger? logger = null)
     {
+        _logger = logger;
         var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
         var appFolder = Path.Combine(appDataPath, "TooltipAI");
         Directory.CreateDirectory(appFolder);
@@ -65,9 +68,9 @@ public class SettingsService : IDisposable
                 return JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Use defaults on error
+            _logger?.LogError(ex, "Failed to load settings from {Path}", _settingsPath);
         }
         return new AppSettings();
     }
@@ -80,9 +83,9 @@ public class SettingsService : IDisposable
             File.WriteAllText(_settingsPath, json);
             _lastLoad = DateTime.UtcNow;
         }
-        catch
+        catch (Exception ex)
         {
-            // Log error but don't throw
+            _logger?.LogError(ex, "Failed to save settings to {Path}", _settingsPath);
         }
     }
 

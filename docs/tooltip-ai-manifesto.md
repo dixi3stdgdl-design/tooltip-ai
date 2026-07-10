@@ -526,9 +526,9 @@ La estructura de precios de Tooltip AI está diseñada para capturar valor en ca
 
 **Free ($0):** 10 tooltips por día. Información básica del elemento (nombre, tipo, estado). Sin historial, sin personalización, sin temas. Propósito: viralidad y adquisición masiva. Costo operativo: $0 (procesamiento 100% local).
 
-**Pro ($7.99/mes):** Tooltips ilimitados. Contexto enriquecido completo. Historial de contexto. Selección de temas. Atajos de teclado detectados. Prioridad de soporte. Costo operativo: $0.40/mes (soporte + hosting mínimo). Margen: 95%.
+**Pro ($4.99/mes):** Tooltips ilimitados. Contexto enriquecido completo. Historial de contexto. Selección de temas. Atajos de teclado detectados. Prioridad de soporte. Costo operativo: $0.40/mes (soporte + hosting mínimo). Margen: 95%.
 
-**Team ($19.99/usuario/mes):** Todo lo de Pro más panel de administración para IT. Analytics de uso por departamento. Despliegue centralizado vía GPO. Soporte prioritario 24/4. SLA de 99.9% uptime. Costo operativo: $1.50/usuario/mes. Margen: 92.5%.
+**Business ($14.99/user/mes):** Todo lo de Pro más panel de administración para IT. Analytics de uso por departamento. Despliegue centralizado vía GPO. Soporte prioritario 24/4. SLA de 99.9% uptime. Costo operativo: $1.50/usuario/mes. Margen: 92.5%.
 
 **Enterprise ($5,000/año):** Contrato personalizado. Integración con LMS existente. Custom context packs por industria. Auditoría de cumplimiento (HIPAA, PCI-DSS, SOX). Soporte dedicado con ingeniero asignado. On-premise deployment option. Costo operativo: $50/mes por cliente. Margen: 88%.
 
@@ -544,7 +544,7 @@ Año 1 Q3: 75,000 usuarios totales, 7,500 pagando (10%), MRR $60,000, ARR $720,0
 
 Año 1 Q4: 150,000 usuarios totales, 18,000 pagando (12%), MRR $144,000, ARR $1,728,000.
 
-Ingreso B2B adicional (mismo período): 5 Enterprise × $417/mes + 20 Mid-Market × 100 usuarios × $19.99 + 50 SMB × 25 usuarios × $14.99 = $83,692/mes.
+Ingreso B2B adicional (mismo período): 5 Enterprise × $417/mes + 20 Mid-Market × 100 usuarios × $14.99 + 50 SMB × 25 usuarios × $14.99 = $83,692/mes.
 
 ARR consolidado fin de Año 1 (escenario realista): $2,732,304.
 
@@ -552,9 +552,9 @@ ARR consolidado fin de Año 1 (escenario realista): $2,732,304.
 
 El churn rate proyectado para Tooltip AI es del 3-5% mensual en Pro y 1-2% mensual en Team/Enterprise. La justificación es simple: Tooltip AI se integra en el flujo de trabajo del usuario de forma invisible. No es una app que se abre y se cierra — es una capa que siempre está ahí. El usuario no percibe costo cognitivo ni overhead. Cuando algo se vuelve invisible y útil, el churn colapsa.
 
-Churn Pro (mes a mes): 5% mensual → LTV promedio = $7.99 / 0.05 = $159.80 por usuario. CAC estimado: $8 (acorgánica + viralidad). LTV/CAC ratio: 19.98x. Por cada $1 invertido en adquisición, se recuperan $20.
+Churn Pro (mes a mes): 5% mensual → LTV promedio = $4.99 / 0.05 = $99.80 por usuario. CAC estimado: $8 (acorgánica + viralidad). LTV/CAC ratio: 12.48x. Por cada $1 invertido en adquisición, se recuperan $12.
 
-Churn Team (anual contract): 1.5% mensual → LTV promedio = $19.99 / 0.015 = $1,332.67 por usuario. CAC estimado: $50 (ventas directas + demo). LTV/CAC ratio: 26.65x.
+Churn Business (anual contract): 1.5% mensual → LTV promedio = $14.99 / 0.015 = $999.33 por usuario. CAC estimado: $50 (ventas directas + demo). LTV/CAC ratio: 19.99x.
 
 Churn Enterprise (multi-year): 0.5% mensual → LTV promedio = $417 / 0.005 = $83,400 por cliente. CAC estimado: $5,000 (equipo de ventas + legal + onboarding). LTV/CAC ratio: 16.68x.
 
@@ -562,10 +562,10 @@ Los benchmarks de la industria SaaS para churn son 5-7% mensual en B2C y 1-3% me
 
 Proyección neta de usuarios pagando (descontando churn):
 
-Q1: 500 iniciales - 25 churn (5%) = 475 netos × $7.99 = $3,795 MRR
-Q2: 2,400 iniciales - 120 churn (5%) = 2,280 netos × $7.99 = $18,217 MRR + B2B $83,692 = $101,909 MRR
-Q3: 7,500 iniciales - 375 churn (5%) = 7,125 netos × $7.99 = $56,929 MRR + B2B $120,000 = $176,929 MRR
-Q4: 18,000 iniciales - 900 churn (5%) = 17,100 netos × $7.99 = $136,629 MRR + B2B $160,000 = $296,629 MRR
+Q1: 500 iniciales - 25 churn (5%) = 475 netos × $4.99 = $2,370 MRR
+Q2: 2,400 iniciales - 120 churn (5%) = 2,280 netos × $4.99 = $11,377 MRR + B2B $83,692 = $95,069 MRR
+Q3: 7,500 iniciales - 375 churn (5%) = 7,125 netos × $4.99 = $35,554 MRR + B2B $120,000 = $155,554 MRR
+Q4: 18,000 iniciales - 900 churn (5%) = 17,100 netos × $4.99 = $85,329 MRR + B2B $160,000 = $245,329 MRR
 
 ARR neto fin de Año 1 (descontando churn): $3,559,548.
 

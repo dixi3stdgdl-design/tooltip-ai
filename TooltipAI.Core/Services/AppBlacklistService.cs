@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 
 namespace TooltipAI.Core.Services;
 
@@ -8,6 +9,7 @@ public class AppBlacklistService : IDisposable
     private readonly object _lock = new();
     private List<string> _blacklist;
     private readonly FileSystemWatcher? _watcher;
+    private readonly ILogger? _logger;
 
     public event Action<List<string>>? BlacklistChanged;
 
@@ -22,8 +24,9 @@ public class AppBlacklistService : IDisposable
         }
     }
 
-    public AppBlacklistService(string? customPath = null)
+    public AppBlacklistService(string? customPath = null, ILogger? logger = null)
     {
+        _logger = logger;
         var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
         var appFolder = Path.Combine(appDataPath, "TooltipAI");
         Directory.CreateDirectory(appFolder);
@@ -108,9 +111,9 @@ public class AppBlacklistService : IDisposable
                 return JsonSerializer.Deserialize<List<string>>(json) ?? new List<string>();
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Use empty list on error
+            _logger?.LogError(ex, "Failed to load blacklist from {Path}", _blacklistPath);
         }
         return new List<string>();
     }
@@ -122,9 +125,9 @@ public class AppBlacklistService : IDisposable
             var json = JsonSerializer.Serialize(blacklist, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(_blacklistPath, json);
         }
-        catch
+        catch (Exception ex)
         {
-            // Silently fail on save errors
+            _logger?.LogError(ex, "Failed to save blacklist to {Path}", _blacklistPath);
         }
     }
 

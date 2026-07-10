@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Reflection;
+using Microsoft.Extensions.Logging;
 
 namespace TooltipAI.Core.Services;
 
@@ -12,12 +13,14 @@ public class UpdateService
     private readonly string _repoName = "tooltip-ai";
     private readonly HttpClient _http;
     private readonly string _installPath;
+    private readonly ILogger? _logger;
 
     public event Action<string>? UpdateAvailable;
     public event Action<double>? DownloadProgress;
 
-    public UpdateService(HttpClient? httpClient = null, string? installPath = null)
+    public UpdateService(HttpClient? httpClient = null, string? installPath = null, ILogger? logger = null)
     {
+        _logger = logger;
         _http = httpClient ?? new HttpClient();
         _http.DefaultRequestHeaders.UserAgent.ParseAdd("TooltipAI-Updater");
         _installPath = installPath ?? AppContext.BaseDirectory;
@@ -31,6 +34,7 @@ public class UpdateService
         try
         {
             var url = $"https://api.github.com/repos/{_repoOwner}/{_repoName}/releases/latest";
+            _logger?.LogDebug("Checking for updates at {Url}", url);
             var release = await _http.GetFromJsonAsync<GitHubRelease>(url, ct);
 
             if (release == null || string.IsNullOrEmpty(release.TagName))
@@ -46,6 +50,7 @@ public class UpdateService
             var asset = release.Assets?.FirstOrDefault(a =>
                 a.Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase));
 
+            _logger?.LogInformation("Update available: v{Version}", remoteVersion);
             return new ReleaseInfo
             {
                 Version = remoteVersion,
@@ -55,8 +60,9 @@ public class UpdateService
                 PublishedAt = release.PublishedAt
             };
         }
-        catch
+        catch (Exception ex)
         {
+            _logger?.LogError(ex, "Failed to check for updates");
             return null;
         }
     }
@@ -107,7 +113,7 @@ public class UpdateService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Update] Failed: {ex.Message}");
+            _logger?.LogError(ex, "Failed to download and install update v{Version}", release.Version);
             return false;
         }
     }

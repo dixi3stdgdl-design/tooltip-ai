@@ -29,10 +29,10 @@ App de escritorio multiplataforma que detecta el elemento bajo el cursor y muest
 
 | Tier | Precio | Features |
 |------|--------|----------|
-| **Free** | $0 | 50 consultas/día, tooltips básicos |
-| **Pro** | $7.99/mes | Ilimitado, historial, personalización, temas |
-| **Team** | $19.99/usuario/mes | Panel IT, analytics, soporte prioritario |
-| **Enterprise** | $5,000/año | On-premise, compliance, soporte dedicado |
+| **Free** | $0 | 10 tooltips/día, tooltips básicos |
+| **Pro** | $4.99/mes | Ilimitado, 50+ idiomas, IA enriquecida |
+| **Business** | $14.99/user/mes | Admin, analytics, SSO |
+| **Enterprise** | $5k/año | On-premise, compliance, soporte dedicado |
 
 ---
 

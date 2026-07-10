@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using TooltipAI.Core.Models;
 using TooltipAI.Core.Services;
 
@@ -6,6 +7,12 @@ namespace TooltipAI.Core.Services;
 public class VisualizationDataService
 {
     private readonly Random _random = new();
+    private readonly ILogger? _logger;
+
+    public VisualizationDataService(ILogger? logger = null)
+    {
+        _logger = logger;
+    }
 
     public void PopulateVisualization(TooltipData data, SoftwareCategory category, string processName)
     {

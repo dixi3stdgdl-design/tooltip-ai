@@ -138,7 +138,7 @@ public class PIIFilterTests
         var result = _filter.Filter(input);
 
         result.ContainsPII.Should().BeTrue();
-        result.DetectedTypes.Count.Should().BeGreaterOrEqualTo(2);
+        result.DetectedTypes.Count.Should().BeGreaterThanOrEqualTo(2);
     }
 
     [Fact]

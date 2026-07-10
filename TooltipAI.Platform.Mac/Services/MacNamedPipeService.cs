@@ -1,6 +1,7 @@
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using TooltipAI.Core.Interfaces;
 using TooltipAI.Core.Models;
 

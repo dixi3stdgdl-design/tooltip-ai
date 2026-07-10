@@ -22,6 +22,7 @@ builder.Services.AddSingleton<ContextCacheService>();
 builder.Services.AddSingleton<PluginRegistryService>();
 builder.Services.AddSingleton<PIIFilter>(PIIFilter.Instance);
 builder.Services.AddSingleton<TelemetryAggregator>();
+builder.Services.AddSingleton<UserStoreService>();
 builder.Services.AddSingleton<EnrichmentEngine>();
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient<LLMProvider>();

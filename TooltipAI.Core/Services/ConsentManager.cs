@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 
 namespace TooltipAI.Core.Services;
 
@@ -8,6 +9,7 @@ public class ConsentManager : IDisposable
     private readonly object _lock = new();
     private ConsentState _state;
     private readonly FileSystemWatcher? _watcher;
+    private readonly ILogger? _logger;
 
     public event Action<ConsentState>? ConsentChanged;
 
@@ -22,8 +24,9 @@ public class ConsentManager : IDisposable
         }
     }
 
-    public ConsentManager(string? customPath = null)
+    public ConsentManager(string? customPath = null, ILogger? logger = null)
     {
+        _logger = logger;
         var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
         var appFolder = Path.Combine(appDataPath, "TooltipAI");
         Directory.CreateDirectory(appFolder);
@@ -138,9 +141,9 @@ public class ConsentManager : IDisposable
                 return JsonSerializer.Deserialize<ConsentState>(json) ?? new ConsentState();
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Use defaults on error
+            _logger?.LogError(ex, "Failed to load consent state from {Path}", _consentPath);
         }
         return new ConsentState();
     }
@@ -152,9 +155,9 @@ public class ConsentManager : IDisposable
             var json = JsonSerializer.Serialize(state, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(_consentPath, json);
         }
-        catch
+        catch (Exception ex)
         {
-            // Silently fail on save errors
+            _logger?.LogError(ex, "Failed to save consent state to {Path}", _consentPath);
         }
     }
 

@@ -148,7 +148,7 @@ POST /api/plugins          - Registrar plugin
 | **Free** | $0 | 10 tooltips/dia, 10 idiomas |
 | **Pro** | $4.99/mes | Ilimitado, 50+ idiomas, IA enriquecida |
 | **Business** | $14.99/user/mes | Admin, analytics, SSO |
-| **Enterprise** | Custom | On-premise, SLA |
+| **Enterprise** | $5k/año | On-premise, compliance, SLA |
 
 ### Costos Operativos
 

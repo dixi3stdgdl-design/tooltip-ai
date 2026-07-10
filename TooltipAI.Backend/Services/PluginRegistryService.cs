@@ -68,6 +68,11 @@ public sealed class PluginRegistryService
         };
     }
 
+    public int GetActivePluginCount()
+    {
+        return _plugins.Count;
+    }
+
     private void SeedOfficialPlugins()
     {
         var official = new[]

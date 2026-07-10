@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Microsoft.Extensions.Logging;
 
 namespace TooltipAI.Core.Services;
 
@@ -6,13 +7,15 @@ public class CrashRecoveryService : IDisposable
 {
     private readonly ConcurrentDictionary<string, RecoveryState> _states = new();
     private readonly Timer _cleanupTimer;
+    private readonly ILogger? _logger;
 
     public int MaxRetries { get; set; } = 5;
     public TimeSpan BaseDelay { get; set; } = TimeSpan.FromSeconds(1);
     public TimeSpan MaxDelay { get; set; } = TimeSpan.FromMinutes(5);
 
-    public CrashRecoveryService()
+    public CrashRecoveryService(ILogger? logger = null)
     {
+        _logger = logger;
         _cleanupTimer = new Timer(CleanupOldStates, null, TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(10));
     }
 
@@ -41,6 +44,7 @@ public class CrashRecoveryService : IDisposable
         var state = _states.GetOrAdd(operationName, _ => new RecoveryState());
         state.LastError = exception.Message;
         state.LastFailure = DateTime.UtcNow;
+        _logger?.LogError(exception, "Operation {OperationName} failed (attempt {AttemptCount})", operationName, state.AttemptCount);
     }
 
     public RecoveryReport GetReport()

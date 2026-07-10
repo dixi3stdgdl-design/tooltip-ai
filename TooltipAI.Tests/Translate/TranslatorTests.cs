@@ -83,7 +83,7 @@ public class TranslatorTests
     {
         var result = await _translator.TranslateAsync("This is a longer text that will take more time to process", "en", "es");
 
-        result.LatencyMs.Should().BeGreaterOrEqualTo(0);
+        result.LatencyMs.Should().BeGreaterThanOrEqualTo(0);
     }
 
     [Fact]

@@ -133,18 +133,18 @@ Al delegar la carga de procesamiento a las **NPUs y GPUs locales del dispositivo
 | Tier | Precio | Margen | LTV | CAC | LTV/CAC |
 |------|--------|--------|-----|-----|---------|
 | **Free** | $0 | N/A | N/A | $0 | N/A |
-| **Pro** | $7.99/mes | 95% | $159.80 | $8.00 | 19.98x |
-| **Team** | $19.99/usuario/mes | 92.5% | $1,332.67 | $50.00 | 26.65x |
+| **Pro** | $4.99/mes | 95% | $99.80 | $8.00 | 12.48x |
+| **Business** | $14.99/user/mes | 92.5% | $999.33 | $50.00 | 19.99x |
 | **Enterprise** | $5,000/año | 88% | $83,400 | $5,000 | 16.68x |
 
 ### 4.2 Proyección Financiera (Descontando Churn 5%)
 
 | Trimestre | Usuarios Netos | MRR | ARR Run-Rate |
 |-----------|----------------|-----|--------------|
-| **Q1** | 475 Pro | $3,795 | $45,540 |
-| **Q2** | 2,280 Pro + B2B | $101,909 | $1,222,908 |
-| **Q3** | 7,125 Pro + B2B | $176,929 | $2,123,148 |
-| **Q4** | 17,100 Pro + B2B | $296,629 | $3,559,548 |
+| **Q1** | 475 Pro | $2,370 | $28,440 |
+| **Q2** | 2,280 Pro + B2B | $95,069 | $1,140,828 |
+| **Q3** | 7,125 Pro + B2B | $155,554 | $1,866,648 |
+| **Q4** | 17,100 Pro + B2B | $245,329 | $2,943,948 |
 
 **ARR consolidado fin de Año 1: $3,559,548 USD**
 
@@ -152,7 +152,7 @@ Al delegar la carga de procesamiento a las **NPUs y GPUs locales del dispositivo
 
 | Sin Tooltip AI | Con Tooltip AI |
 |----------------|----------------|
-| Copilot cobra $20/mes | Tooltip AI cobra $7.99/mes |
+| Copilot cobra $20/mes | Tooltip AI cobra $4.99/mes |
 | Google no tiene desktop AI | Google tiene desktop AI |
 | Microsoft controla la interfaz | Google controla la interfaz |
 | $5-15/mes costo por usuario | $0.00/mes costo por usuario |

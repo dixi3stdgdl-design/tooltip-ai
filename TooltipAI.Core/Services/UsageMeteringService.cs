@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 
 namespace TooltipAI.Core.Services;
 
@@ -8,13 +9,15 @@ public class UsageMeteringService : IDisposable
     private readonly object _lock = new();
     private UsageData _data;
     private readonly FileSystemWatcher? _watcher;
+    private readonly ILogger? _logger;
 
     public int DailyUsage => _data.DailyCount;
     public int DailyLimit => _data.DailyLimit;
     public bool IsLimitReached => _data.DailyCount >= _data.DailyLimit;
 
-    public UsageMeteringService(string? customPath = null)
+    public UsageMeteringService(string? customPath = null, ILogger? logger = null)
     {
+        _logger = logger;
         var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
         var appFolder = Path.Combine(appDataPath, "TooltipAI");
         Directory.CreateDirectory(appFolder);
@@ -129,9 +132,9 @@ public class UsageMeteringService : IDisposable
                 return JsonSerializer.Deserialize<UsageData>(json) ?? new UsageData();
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Use defaults on error
+            _logger?.LogError(ex, "Failed to load usage data from {Path}", _usagePath);
         }
         return new UsageData();
     }
@@ -143,9 +146,9 @@ public class UsageMeteringService : IDisposable
             var json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(_usagePath, json);
         }
-        catch
+        catch (Exception ex)
         {
-            // Silently fail on save errors
+            _logger?.LogError(ex, "Failed to save usage data to {Path}", _usagePath);
         }
     }
 

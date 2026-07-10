@@ -127,7 +127,7 @@ cat > "$TEMP_CONFIG" << XMLCONFIG
 <?xml version="1.0" encoding="utf-8"?>
 <Obfuscator>
   <Input file="TooltipAI.Core.dll" />
-  <OutputDirectory>output" />
+  <OutputDirectory>output</OutputDirectory>
   
   <LogFile path="obfuscation.log" />
   

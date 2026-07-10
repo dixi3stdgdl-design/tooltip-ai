@@ -1,4 +1,5 @@
 using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using TooltipAI.Core.Models;
 
@@ -11,11 +12,19 @@ public class ResponseCacheService : IDisposable
     private readonly int _maxEntries = 1000;
     private readonly object _lock = new();
     private SqliteConnection? _connection;
+    private readonly ILogger? _logger;
+
+    private long _cacheHits;
+    private long _cacheMisses;
 
     public int EntryCount => GetEntryCount();
+    public long CacheHits => Interlocked.Read(ref _cacheHits);
+    public long CacheMisses => Interlocked.Read(ref _cacheMisses);
+    public double HitRate => (_cacheHits + _cacheMisses) == 0 ? 0.0 : (double)_cacheHits / (_cacheHits + _cacheMisses);
 
-    public ResponseCacheService(string? customPath = null)
+    public ResponseCacheService(string? customPath = null, ILogger? logger = null)
     {
+        _logger = logger;
         var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
         var appFolder = Path.Combine(appDataPath, "TooltipAI");
         Directory.CreateDirectory(appFolder);
@@ -41,13 +50,26 @@ public class ResponseCacheService : IDisposable
                 using var reader = command.ExecuteReader();
                 if (reader.Read())
                 {
+                    Interlocked.Increment(ref _cacheHits);
+
                     var json = reader.GetString(0);
+
+                    // Update last_access_at for LRU tracking
+                    using var updateCommand = _connection!.CreateCommand();
+                    updateCommand.CommandText = "UPDATE cache SET last_access_at = @now WHERE key = @key";
+                    updateCommand.Parameters.AddWithValue("@now", DateTime.UtcNow.Ticks);
+                    updateCommand.Parameters.AddWithValue("@key", key);
+                    updateCommand.ExecuteNonQuery();
+
                     return JsonSerializer.Deserialize<TooltipData>(json);
                 }
+
+                Interlocked.Increment(ref _cacheMisses);
             }
-            catch
+            catch (Exception ex)
             {
-                // Return null on error
+                Interlocked.Increment(ref _cacheMisses);
+                _logger?.LogError(ex, "Cache Get failed for key: {Key}", key);
             }
         }
         return null;
@@ -60,26 +82,28 @@ public class ResponseCacheService : IDisposable
             try
             {
                 var expiry = DateTime.UtcNow + (ttl ?? _defaultTtl);
+                var now = DateTime.UtcNow.Ticks;
                 var json = JsonSerializer.Serialize(value);
 
                 using var command = _connection!.CreateCommand();
                 command.CommandText = @"
-                    INSERT OR REPLACE INTO cache (key, data, expires_at, created_at)
-                    VALUES (@key, @data, @expires_at, @created_at)";
+                    INSERT OR REPLACE INTO cache (key, data, expires_at, created_at, last_access_at)
+                    VALUES (@key, @data, @expires_at, @created_at, @last_access_at)";
 
                 command.Parameters.AddWithValue("@key", key);
                 command.Parameters.AddWithValue("@data", json);
                 command.Parameters.AddWithValue("@expires_at", expiry.Ticks);
-                command.Parameters.AddWithValue("@created_at", DateTime.UtcNow.Ticks);
+                command.Parameters.AddWithValue("@created_at", now);
+                command.Parameters.AddWithValue("@last_access_at", now);
 
                 command.ExecuteNonQuery();
 
                 CleanupExpiredEntries();
                 EnforceMaxEntries();
             }
-            catch
+            catch (Exception ex)
             {
-                // Silently fail on cache errors
+                _logger?.LogError(ex, "Cache Set failed for key: {Key}", key);
             }
         }
     }
@@ -95,9 +119,9 @@ public class ResponseCacheService : IDisposable
                 command.Parameters.AddWithValue("@key", key);
                 command.ExecuteNonQuery();
             }
-            catch
+            catch (Exception ex)
             {
-                // Silently fail
+                _logger?.LogError(ex, "Cache Remove failed for key: {Key}", key);
             }
         }
     }
@@ -112,9 +136,9 @@ public class ResponseCacheService : IDisposable
                 command.CommandText = "DELETE FROM cache";
                 command.ExecuteNonQuery();
             }
-            catch
+            catch (Exception ex)
             {
-                // Silently fail
+                _logger?.LogError(ex, "Cache Clear failed");
             }
         }
     }
@@ -141,13 +165,16 @@ public class ResponseCacheService : IDisposable
                     {
                         TotalEntries = reader.GetInt32(0),
                         ActiveEntries = reader.GetInt32(1),
-                        ExpiredEntries = reader.GetInt32(2)
+                        ExpiredEntries = reader.GetInt32(2),
+                        CacheHits = CacheHits,
+                        CacheMisses = CacheMisses,
+                        HitRate = HitRate
                     };
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // Return empty stats on error
+                _logger?.LogError(ex, "Cache GetStats failed");
             }
         }
         return new CacheStats();
@@ -173,17 +200,22 @@ public class ResponseCacheService : IDisposable
                         key TEXT PRIMARY KEY,
                         data TEXT NOT NULL,
                         expires_at INTEGER NOT NULL,
-                        created_at INTEGER NOT NULL
+                        created_at INTEGER NOT NULL,
+                        last_access_at INTEGER NOT NULL
                     )";
                 command.ExecuteNonQuery();
 
                 using var indexCommand = _connection.CreateCommand();
                 indexCommand.CommandText = "CREATE INDEX IF NOT EXISTS idx_expires ON cache(expires_at)";
                 indexCommand.ExecuteNonQuery();
+
+                using var accessIndexCommand = _connection.CreateCommand();
+                accessIndexCommand.CommandText = "CREATE INDEX IF NOT EXISTS idx_last_access ON cache(last_access_at)";
+                accessIndexCommand.ExecuteNonQuery();
             }
-            catch
+            catch (Exception ex)
             {
-                // Database initialization failed - cache will be disabled
+                _logger?.LogError(ex, "Cache database initialization failed at path: {Path}", _dbPath);
             }
         }
     }
@@ -197,9 +229,9 @@ public class ResponseCacheService : IDisposable
             command.Parameters.AddWithValue("@now", DateTime.UtcNow.Ticks);
             command.ExecuteNonQuery();
         }
-        catch
+        catch (Exception ex)
         {
-            // Silently fail
+            _logger?.LogError(ex, "Cache expired entries cleanup failed");
         }
     }
 
@@ -211,15 +243,15 @@ public class ResponseCacheService : IDisposable
             command.CommandText = @"
                 DELETE FROM cache WHERE key IN (
                     SELECT key FROM cache
-                    ORDER BY created_at ASC
+                    ORDER BY last_access_at ASC
                     LIMIT (SELECT MAX(COUNT(*) - @max, 0) FROM cache)
                 )";
             command.Parameters.AddWithValue("@max", _maxEntries);
             command.ExecuteNonQuery();
         }
-        catch
+        catch (Exception ex)
         {
-            // Silently fail
+            _logger?.LogError(ex, "Cache LRU eviction failed");
         }
     }
 
@@ -251,4 +283,7 @@ public class CacheStats
     public int TotalEntries { get; set; }
     public int ActiveEntries { get; set; }
     public int ExpiredEntries { get; set; }
+    public long CacheHits { get; set; }
+    public long CacheMisses { get; set; }
+    public double HitRate { get; set; }
 }

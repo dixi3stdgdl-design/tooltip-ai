@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.Extensions.Logging;
 
 namespace TooltipAI.Core.Services;
 
@@ -16,6 +17,7 @@ public class LicenseService : IDisposable
     private readonly string _settingsPath;
     private DateTime? _firstRunDate;
     private string? _licenseKey;
+    private readonly ILogger? _logger;
 
     public event Action<bool>? LicenseStatusChanged;
 
@@ -23,8 +25,9 @@ public class LicenseService : IDisposable
     public bool IsLicensed => !string.IsNullOrEmpty(_licenseKey) && ValidateLicenseKey(_licenseKey!);
     public bool IsExpired => !IsLicensed && !IsTrialActive;
 
-    public LicenseService(string? settingsPath = null)
+    public LicenseService(string? settingsPath = null, ILogger? logger = null)
     {
+        _logger = logger;
         var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
         var appFolder = Path.Combine(appDataPath, "TooltipAI");
         Directory.CreateDirectory(appFolder);
@@ -158,8 +161,9 @@ public class LicenseService : IDisposable
                 StartTrial();
             }
         }
-        catch
+        catch (Exception ex)
         {
+            _logger?.LogError(ex, "Failed to load license from {Path}, starting fresh trial", _settingsPath);
             _firstRunDate = DateTime.UtcNow;
             SaveLicense();
         }
@@ -177,9 +181,9 @@ public class LicenseService : IDisposable
 
             File.WriteAllLines(_settingsPath, lines);
         }
-        catch
+        catch (Exception ex)
         {
-            // Log but don't throw
+            _logger?.LogError(ex, "Failed to save license to {Path}", _settingsPath);
         }
     }
 
