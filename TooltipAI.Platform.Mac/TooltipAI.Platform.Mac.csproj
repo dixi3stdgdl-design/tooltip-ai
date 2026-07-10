@@ -12,6 +12,9 @@
     <Description>TooltipAI macOS Platform — Accessibility API + Core Graphics</Description>
     <UseMaui>false</UseMaui>
     <SupportedOSPlatformVersion>12.0</SupportedOSPlatformVersion>
+    <ApplicationId>com.mimo.tooltipai</ApplicationId>
+    <ApplicationDisplayVersion>1.0.0</ApplicationDisplayVersion>
+    <ApplicationVersion>1</ApplicationVersion>
   </PropertyGroup>
 
   <ItemGroup>
