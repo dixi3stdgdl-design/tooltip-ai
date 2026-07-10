@@ -15,6 +15,7 @@
     <ApplicationId>com.mimo.tooltipai</ApplicationId>
     <ApplicationDisplayVersion>1.0.0</ApplicationDisplayVersion>
     <ApplicationVersion>1</ApplicationVersion>
+    <UseAppHost>true</UseAppHost>
   </PropertyGroup>
 
   <ItemGroup>
