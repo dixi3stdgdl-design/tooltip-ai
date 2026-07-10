@@ -31,10 +31,7 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Install macOS Workload
-        run: |
-          dotnet workload install macos
-          dotnet workload install macos-arm64
-          dotnet workload install macos-x64
+        run: dotnet workload install macos
 
       - name: Restore
         run: dotnet restore TooltipAI.Platform.Mac/TooltipAI.Platform.Mac.csproj
