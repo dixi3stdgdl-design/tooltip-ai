@@ -14,6 +14,8 @@ env:
   APP_NAME: 'Tooltip AI'
   BUNDLE_ID: 'com.mimo.tooltipai'
   VERSION: '1.0.0'
+  DOTNET_ROLL_FORWARD: 'LatestMajor'
+  CheckEolTargetFramework: 'false'
 
 jobs:
   build-macos:
