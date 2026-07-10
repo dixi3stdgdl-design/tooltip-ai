@@ -124,7 +124,7 @@ jobs:
           cat ../hashes-sha256.txt
 
       - name: Upload obfuscated artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: backend-obfuscated
           path: ./publish-backend-obfuscated/
@@ -201,13 +201,13 @@ jobs:
           cat /tmp/tooltipai-backend.tar.gz.sha256
 
       - name: Upload Docker image
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: docker-image-hardened
           path: /tmp/tooltipai-backend.tar.gz
 
       - name: Upload security hashes
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: security-hashes
           path: /tmp/tooltipai-backend.tar.gz.sha256
