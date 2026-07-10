@@ -342,7 +342,7 @@ jobs:
           name: security-hashes
 
       - name: Create GitHub Release (Hardened)
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: v1.0.0-${{ github.run_number }}
           name: "TooltipAI v1.0.0 (Hardened Build ${{ github.run_number }})"
