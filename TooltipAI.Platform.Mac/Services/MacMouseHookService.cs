@@ -36,7 +36,14 @@ public sealed class MacMouseHookService : IMouseHookService, IDisposable
     private static extern IntPtr CFMachPortCreateRunLoopSource(IntPtr allocator, IntPtr port, int order);
 
     [DllImport("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")]
-    private static extern IntPtr CGEventGetLocation(IntPtr eventRef);
+    private static extern CGPoint CGEventGetLocation(IntPtr eventRef);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct CGPoint
+    {
+        public double X;
+        public double Y;
+    }
 
     [DllImport("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")]
     private static extern int CGEventGetIntegerValueField(IntPtr eventRef, int field);

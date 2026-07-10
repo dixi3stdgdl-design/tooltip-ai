@@ -30,6 +30,9 @@ public sealed class MacTooltipWindow : IDisposable
     private static extern IntPtr objc_msgSend(IntPtr receiver, IntPtr selector, float x, float y, float w, float h);
 
     [DllImport("/System/Library/Frameworks/AppKit.framework/AppKit")]
+    private static extern IntPtr objc_msgSend(IntPtr receiver, IntPtr selector, float x, float y, float w, float h, int styleMask, int backing, bool defer);
+
+    [DllImport("/System/Library/Frameworks/AppKit.framework/AppKit")]
     private static extern IntPtr sel_registerName(string name);
 
     [DllImport("/System/Library/Frameworks/objc/libobjc.dylib")]

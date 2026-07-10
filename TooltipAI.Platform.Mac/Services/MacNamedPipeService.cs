@@ -69,7 +69,7 @@ public sealed class MacNamedPipeService : IDisposable
         public UnixDomainSocketServer(string socketPath)
         {
             _socketPath = socketPath;
-            _socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unix);
+            _socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.IP);
 
             var endpoint = new UnixDomainSocketEndPoint(socketPath);
             _socket.Bind(endpoint);
