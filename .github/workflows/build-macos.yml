@@ -52,20 +52,20 @@ jobs:
       - name: Create App Bundle
         run: |
           RUNTIME=${{ matrix.runtime }}
-          APP_BUNDLE="./publish-${RUNTIME}/${APP_NAME}.app"
+          APP_BUNDLE="./publish-${RUNTIME}/TooltipAI.app"
           mkdir -p "${APP_BUNDLE}/Contents/MacOS"
           mkdir -p "${APP_BUNDLE}/Contents/Resources"
-          mv "./publish-${RUNTIME}/TooltipAI.Platform.Mac" "${APP_BUNDLE}/Contents/MacOS/tooltipai"
-          chmod +x "${APP_BUNDLE}/Contents/MacOS/tooltipai"
+          mv "./publish-${RUNTIME}/TooltipAI.Platform.Mac" "${APP_BUNDLE}/Contents/MacOS/TooltipAI"
+          chmod +x "${APP_BUNDLE}/Contents/MacOS/TooltipAI"
 
           cat > "${APP_BUNDLE}/Contents/Info.plist" << 'PLIST'
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
           <dict>
-              <key>CFBundleExecutable</key><string>tooltipai</string>
+              <key>CFBundleExecutable</key><string>TooltipAI</string>
               <key>CFBundleIdentifier</key><string>com.mimo.tooltipai</string>
-              <key>CFBundleName</key><string>Tooltip AI</string>
+              <key>CFBundleName</key><string>TooltipAI</string>
               <key>CFBundleDisplayName</key><string>Tooltip AI</string>
               <key>CFBundleVersion</key><string>1.0.0</string>
               <key>CFBundleShortVersionString</key><string>1.0.0</string>
@@ -78,8 +78,8 @@ jobs:
 
       - name: Create DMG
         run: |
-          hdiutil create -volname "${APP_NAME}" \
-            -srcfolder "./publish-${{ matrix.runtime }}/${APP_NAME}.app" \
+          hdiutil create -volname "TooltipAI" \
+            -srcfolder "./publish-${{ matrix.runtime }}/TooltipAI.app" \
             -ov -format UDZO \
             "./publish-${{ matrix.runtime }}/TooltipAI-mac-${{ matrix.runtime }}.dmg"
 
@@ -98,7 +98,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: tooltipai-mac-${{ matrix.runtime }}-app
-          path: ./publish-${{ matrix.runtime }}/${{ env.APP_NAME }}.app
+          path: ./publish-${{ matrix.runtime }}/TooltipAI.app
 
   release:
     runs-on: ubuntu-latest
