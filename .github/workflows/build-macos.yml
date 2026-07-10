@@ -49,6 +49,9 @@ jobs:
             -p:PublishSingleFile=true \
             -o ./publish-${{ matrix.runtime }}
 
+      - name: List published files
+        run: ls -la ./publish-${{ matrix.runtime }}/
+
       - name: Create App Bundle
         run: |
           RUNTIME=${{ matrix.runtime }}
