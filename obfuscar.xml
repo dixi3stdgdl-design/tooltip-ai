@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Tooltip AI — Obfuscar Configuration
+  Ofusca TooltipAI.Core.dll con:
+  - Renamer (unicode/unprintable)
+  - StringEncryption (AES-256)
+  - ControlFlow (laberinto lógico)
+-->
+<Obfuscator>
+  <!-- Input/Output paths -->
+  <Input file="publish-clean/TooltipAI.Core.dll" />
+  <OutputDirectory>publish-obfuscated" />
+
+  <!-- Log file -->
+  <LogFile path="obfuscation.log" />
+
+  <!-- ═══════════════════════════════════════════════════════════
+       RENAMER — Modo unicode/unprintable
+       ═══════════════════════════════════════════════════════════ -->
+  <Module>
+    <Attribute xml-name="Obfuscator.ConfigurationAttribute"
+               feature="true" />
+    <Attribute xml-name="Obfuscator.Attribute"
+               feature="true" />
+  </Module>
+
+  <RenameAttributes>
+    <!-- Use unprintable unicode characters for renaming -->
+    <Attribute name="Obfuscator.ConfigurationAttribute"
+               inherited="true"
+               feature="true" />
+  </RenameAttributes>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       STRING ENCRYPTION — AES-256
+       ═══════════════════════════════════════════════════════════ -->
+  <StringEncryption enabled="true"
+                    dynamic="true"
+                    aes="true"
+                    key="2026-TooltipAI-Obfuscation-Key-Production"
+                    salt="TooltipAI-Core-Salt-v1" />
+
+  <!-- ═══════════════════════════════════════════════════════════
+       CONTROL FLOW — Laberinto lógico
+       ═══════════════════════════════════════════════════════════ -->
+  <ControlFlow enabled="true" />
+
+  <!-- ═══════════════════════════════════════════════════════════
+       EXCLUSIONES — Tipos públicos para serialización JSON
+       ═══════════════════════════════════════════════════════════ -->
+  <Rules>
+    <!-- Exclude ALL public interfaces (DI/serialization) -->
+    <ExcludeNamespace name="TooltipAI.Core.Interfaces" />
+
+    <!-- Exclude ALL models (JSON serialization) -->
+    <ExcludeNamespace name="TooltipAI.Core.Models" />
+
+    <!-- Exclude specific types that Azure/backend needs -->
+    <Exclude type="TooltipAI.Core.Models.TooltipData" />
+    <Exclude type="TooltipAI.Core.Models.ElementInfo" />
+    <Exclude type="TooltipAI.Core.Models.ActionToken" />
+    <Exclude type="TooltipAI.Core.Models.GazeContext" />
+    <Exclude type="TooltipAI.Core.Models.GlassmorphicStyle" />
+    <Exclude type="TooltipAI.Core.Models.AiComplexityConfig" />
+    <Exclude type="TooltipAI.Core.Models.ContextEnricherConfig" />
+
+    <!-- Exclude Auth types (token serialization) -->
+    <ExcludeNamespace name="TooltipAI.Core.Auth" />
+
+    <!-- Exclude Translate models (API contract) -->
+    <ExcludeNamespace name="TooltipAI.Core.Translate" />
+
+    <!-- Exclude Services that use reflection/DI -->
+    <Exclude type="TooltipAI.Core.Services.LicenseService" />
+    <Exclude type="TooltipAI.Core.Services.HybridAiService" />
+    <Exclude type="TooltipAI.Core.Services.PluginLoader" />
+  </Rules>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       ANTI-TAMPER — Detección de manipulación
+       ═══════════════════════════════════════════════════════════ -->
+  <AntiTamper enabled="true" />
+
+  <!-- ═══════════════════════════════════════════════════════════
+       ANTI-DEBUG — Detección de debugger
+       ═══════════════════════════════════════════════════════════ -->
+  <AntiDebug enabled="true" />
+
+  <!-- ═══════════════════════════════════════════════════════════
+       WATERMARK — Marca de agua (opcional)
+       ═══════════════════════════════════════════════════════════ -->
+  <Watermark enabled="false" />
+</Obfuscator>

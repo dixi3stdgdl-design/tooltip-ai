@@ -1,0 +1,143 @@
+# ============================================================
+# Tooltip AI — Backend Dockerfile (with Obfuscation Support)
+# ============================================================
+# Multi-stage build con ofuscación opcional
+#
+# Build normal:
+#   docker build -t tooltipai-backend .
+#
+# Build con ofuscación:
+#   docker build --build-arg OBFUSCATE=true -t tooltipai-backend .
+# ============================================================
+
+# ─── Stage 1: Build ────────────────────────────────────────
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+
+ARG OBFUSCATE=false
+
+WORKDIR /src
+
+# Copy csproj files first for better layer caching
+COPY TooltipAI.Core/TooltipAI.Core.csproj ./TooltipAI.Core/
+COPY TooltipAI.Backend/TooltipAI.Backend.csproj ./TooltipAI.Backend/
+
+# Restore dependencies
+RUN dotnet restore TooltipAI.Backend/TooltipAI.Backend.csproj -r linux-x64
+
+# Copy all source code
+COPY TooltipAI.Core/ ./TooltipAI.Core/
+COPY TooltipAI.Backend/ ./TooltipAI.Backend/
+
+# Publish
+RUN dotnet publish TooltipAI.Backend/TooltipAI.Backend.csproj \
+    -c Release \
+    -r linux-x64 \
+    --self-contained \
+    -o /app/publish-clean \
+    /p:PublishTrimmed=true \
+    /p:PublishSingleFile=true
+
+# ─── Stage 2: Obfuscation (optional) ──────────────────────
+FROM build AS obfuscate
+
+ARG OBFUSCATE=false
+
+# Install Obfuscar if needed
+RUN if [ "$OBFUSCATE" = "true" ]; then \
+        echo "Installing Obfuscar..." && \
+        dotnet tool install --global Obfuscar.Console --version 2.2.30 && \
+        export PATH="$PATH:$HOME/.dotnet/tools" && \
+        \
+        echo "Preparing obfuscation..." && \
+        mkdir -p /obfuscate-temp/output && \
+        cp /app/publish-clean/TooltipAI.Core.dll /obfuscate-temp/ && \
+        \
+        # Copy dependencies needed for obfuscation
+        for dll in /app/publish-clean/Microsoft.Extensions.*.dll /app/publish-clean/System.*.dll; do \
+            [ -f "$dll" ] && cp "$dll" /obfuscate-temp/ 2>/dev/null || true; \
+        done && \
+        \
+        # Create obfuscar config
+        cat > /obfuscate-temp/obfuscar.xml << 'OBFUSCATEXML'
+<?xml version="1.0" encoding="utf-8"?>
+<Obfuscator>
+  <Input file="TooltipAI.Core.dll" />
+  <OutputDirectory>output" />
+  
+  <Module>
+    <Attribute xml-name="Obfuscator.ConfigurationAttribute" feature="true" />
+    <Attribute xml-name="Obfuscator.Attribute" feature="true" />
+  </Module>
+  
+  <StringEncryption enabled="true" dynamic="true" aes="true"
+                    key="2026-TooltipAI-Obfuscation-Key-Production"
+                    salt="TooltipAI-Core-Salt-v1" />
+  
+  <ControlFlow enabled="true" />
+  
+  <Rules>
+    <ExcludeNamespace name="TooltipAI.Core.Interfaces" />
+    <ExcludeNamespace name="TooltipAI.Core.Models" />
+    <ExcludeNamespace name="TooltipAI.Core.Auth" />
+    <ExcludeNamespace name="TooltipAI.Core.Translate" />
+    <Exclude type="TooltipAI.Core.Services.LicenseService" />
+    <Exclude type="TooltipAI.Core.Services.HybridAiService" />
+  </Rules>
+  
+  <AntiTamper enabled="true" />
+  <AntiDebug enabled="true" />
+</Obfuscator>
+OBFUSCATEXML
+        \
+        # Run obfuscation
+        echo "Running obfuscation..." && \
+        cd /obfuscate-temp && \
+        dotnet obfuscar obfuscar.xml && \
+        \
+        # Replace DLL
+        cp /obfuscate-temp/output/TooltipAI.Core.dll /app/publish-clean/TooltipAI.Core.dll && \
+        echo "Obfuscation completed successfully" || \
+        (echo "Obfuscation failed, using clean DLL" && exit 1); \
+    else \
+        echo "Skipping obfuscation (OBFUSCATE=false)"; \
+    fi
+
+# ─── Stage 3: Final Runtime ────────────────────────────────
+FROM mcr.microsoft.com/dotnet/runtime-deps:8.0 AS final
+
+LABEL maintainer="Tooltip AI Team"
+LABEL version="1.0.0"
+LABEL description="Tooltip AI Backend (obfuscated)"
+
+# Install wget for health check
+RUN apt-get update && apt-get install -y --no-install-recommends wget && \
+    rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN groupadd -r tooltipai && useradd -r -g tooltipai -m tooltipai
+
+WORKDIR /app
+
+# Copy published binaries (obfuscated or clean based on build arg)
+COPY --from=build /app/publish-clean/ .
+
+# Generate SHA-256 hash for integrity verification
+RUN sha256sum TooltipAI.Core.dll > /app/SHA256-HASH.txt && \
+    chown -R tooltipai:tooltipai /app
+
+# Switch to non-root user
+USER tooltipai
+
+# Expose port
+EXPOSE 8080
+
+# Environment
+ENV ASPNETCORE_URLS=http://+:8080
+ENV DOTNET_RUNNING_IN_CONTAINER=true
+ENV ASPNETCORE_ENVIRONMENT=Production
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
+
+ENTRYPOINT ["./TooltipAI.Backend"]
