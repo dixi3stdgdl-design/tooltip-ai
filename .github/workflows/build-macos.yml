@@ -47,7 +47,6 @@ jobs:
             --self-contained \
             -p:PublishTrimmed=true \
             -p:PublishSingleFile=true \
-            -p:AssemblyName=tooltipai \
             -o ./publish-${{ matrix.runtime }}
 
       - name: Create App Bundle
@@ -56,7 +55,7 @@ jobs:
           APP_BUNDLE="./publish-${RUNTIME}/${APP_NAME}.app"
           mkdir -p "${APP_BUNDLE}/Contents/MacOS"
           mkdir -p "${APP_BUNDLE}/Contents/Resources"
-          mv "./publish-${RUNTIME}/tooltipai" "${APP_BUNDLE}/Contents/MacOS/tooltipai"
+          mv "./publish-${RUNTIME}/TooltipAI.Platform.Mac" "${APP_BUNDLE}/Contents/MacOS/tooltipai"
           chmod +x "${APP_BUNDLE}/Contents/MacOS/tooltipai"
 
           cat > "${APP_BUNDLE}/Contents/Info.plist" << 'PLIST'
