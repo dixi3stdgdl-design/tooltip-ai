@@ -45,17 +45,7 @@ jobs:
             -c Release \
             -r ${{ matrix.runtime }} \
             --self-contained \
-            -p:PublishTrimmed=true
-
-      - name: Copy published files
-        run: |
-          mkdir -p ./publish-${{ matrix.runtime }}
-          cp -r TooltipAI.Platform.Mac/bin/Release/net8.0-macos/${{ matrix.runtime }}/publish/* ./publish-${{ matrix.runtime }}/ 2>/dev/null || \
-          cp -r TooltipAI.Platform.Mac/bin/Release/net8.0-macos/${{ matrix.runtime }}/* ./publish-${{ matrix.runtime }}/ 2>/dev/null || \
-          echo "Warning: No files found in expected locations"
-
-      - name: List published files
-        run: ls -la ./publish-${{ matrix.runtime }}/
+            -p:PublishTrimmed=false
 
       - name: Create App Bundle
         run: |
@@ -63,7 +53,27 @@ jobs:
           APP_BUNDLE="./publish-${RUNTIME}/TooltipAI.app"
           mkdir -p "${APP_BUNDLE}/Contents/MacOS"
           mkdir -p "${APP_BUNDLE}/Contents/Resources"
-          mv "./publish-${RUNTIME}/TooltipAI.Platform.Mac" "${APP_BUNDLE}/Contents/MacOS/TooltipAI"
+
+          # Find the published binary
+          PUBLISH_DIR="TooltipAI.Platform.Mac/bin/Release/net8.0-macos/${RUNTIME}/publish"
+          if [ ! -d "$PUBLISH_DIR" ]; then
+            PUBLISH_DIR="TooltipAI.Platform.Mac/bin/Release/net8.0-macos/${RUNTIME}"
+          fi
+
+          # Find and copy the main executable
+          EXECUTABLE=$(find "$PUBLISH_DIR" -maxdepth 1 -type f -name "TooltipAI*" ! -name "*.dll" ! -name "*.pdb" | head -1)
+          if [ -z "$EXECUTABLE" ]; then
+            EXECUTABLE=$(find "$PUBLISH_DIR" -maxdepth 1 -type f -executable | head -1)
+          fi
+
+          if [ -z "$EXECUTABLE" ]; then
+            echo "Available files in $PUBLISH_DIR:"
+            ls -la "$PUBLISH_DIR/"
+            echo "ERROR: Could not find executable"
+            exit 1
+          fi
+
+          cp "$EXECUTABLE" "${APP_BUNDLE}/Contents/MacOS/TooltipAI"
           chmod +x "${APP_BUNDLE}/Contents/MacOS/TooltipAI"
 
           cat > "${APP_BUNDLE}/Contents/Info.plist" << 'PLIST'
