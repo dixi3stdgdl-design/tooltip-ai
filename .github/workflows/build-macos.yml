@@ -46,7 +46,8 @@ jobs:
             -r ${{ matrix.runtime }} \
             --self-contained \
             -p:PublishTrimmed=true \
-            -p:PublishSingleFile=true
+            -p:PublishSingleFile=true \
+            -p:UseAppHost=true
 
       - name: Copy published files
         run: |
