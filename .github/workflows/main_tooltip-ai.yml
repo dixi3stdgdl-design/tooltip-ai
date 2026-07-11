@@ -356,8 +356,8 @@ jobs:
         with:
           tag_name: v1.0.0-${{ github.run_number }}
           files: |
+            ./msix/TooltipAI.msixupload
             ./msix/TooltipAI.msix
-            ./msix/TooltipAI-SelfSigned.cer
           name: "TooltipAI v1.0.0 (Hardened Build ${{ github.run_number }})"
           body: |
             ## Security Features

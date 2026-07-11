@@ -25,27 +25,15 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      # Self-signed certificate for CI. The subject MUST match the
-      # Publisher in TooltipAI.UI/Package.appxmanifest.
-      # Replace with a real code-signing cert (repo secret) for production.
-      - name: Generate self-signed signing certificate
-        shell: pwsh
-        run: |
-          $subject = "CN=TooltipAI, O=MiMo Team, C=US"
-          $cert = New-SelfSignedCertificate -Type Custom -Subject $subject `
-            -KeyUsage DigitalSignature -FriendlyName "TooltipAI CI Self-Signed" `
-            -CertStoreLocation "Cert:\CurrentUser\My" `
-            -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}")
-          # Export the public certificate so users can trust/install the package.
-          Export-Certificate -Cert $cert -FilePath "$env:GITHUB_WORKSPACE\TooltipAI-SelfSigned.cer" | Out-Null
-          # Sign via the cert's thumbprint from the CurrentUser store (avoids pfx import issues).
-          "CERT_THUMBPRINT=$($cert.Thumbprint)" | Out-File -FilePath $env:GITHUB_ENV -Append
-          Write-Host "Generated self-signed certificate: $subject (thumbprint $($cert.Thumbprint))"
-
       - name: Restore
         run: msbuild TooltipAI.UI/TooltipAI.UI.csproj /t:Restore /p:Configuration=Release /p:Platform=x64 /p:RuntimeIdentifier=win-x64
 
-      - name: Build and package MSIX
+      # Microsoft Store distribution: the package is uploaded UNSIGNED and
+      # Microsoft re-signs it during ingestion. StoreUpload mode produces the
+      # .msixupload bundle that Partner Center expects.
+      # NOTE: TooltipAI.UI/Package.appxmanifest Identity Name + Publisher must
+      # match the values reserved in Partner Center for the upload to be accepted.
+      - name: Build Store-ready package (unsigned)
         shell: pwsh
         run: |
           $out = "$env:GITHUB_WORKSPACE\msix-out"
@@ -54,35 +42,34 @@ jobs:
             /p:Platform=x64 `
             /p:RuntimeIdentifier=win-x64 `
             /p:GenerateAppxPackageOnBuild=true `
-            /p:AppxPackageSigningEnabled=true `
-            /p:PackageCertificateThumbprint="$env:CERT_THUMBPRINT" `
+            /p:AppxPackageSigningEnabled=false `
             /p:AppxBundle=Never `
-            /p:UapAppxPackageBuildMode=SideloadOnly `
+            /p:UapAppxPackageBuildMode=StoreUpload `
             /p:AppxPackageDir="$out\"
           if ($LASTEXITCODE -ne 0) { throw "MSIX build failed with exit code $LASTEXITCODE" }
 
-      - name: Locate and verify signed .msix
+      - name: Locate Store package
         shell: pwsh
         run: |
+          # Prefer the .msixupload (Partner Center upload); fall back to the raw .msix.
+          $upload = Get-ChildItem -Path "$env:GITHUB_WORKSPACE\msix-out" -Recurse -Filter *.msixupload | Select-Object -First 1
+          if ($upload) {
+            Write-Host "Produced Store upload package: $($upload.FullName)"
+            Copy-Item $upload.FullName "$env:GITHUB_WORKSPACE\TooltipAI.msixupload"
+          } else {
+            Write-Host "No .msixupload found; falling back to raw .msix."
+          }
           $msix = Get-ChildItem -Path "$env:GITHUB_WORKSPACE\msix-out" -Recurse -Filter *.msix |
             Where-Object { $_.Name -notlike "Microsoft.WindowsAppRuntime*" } | Select-Object -First 1
           if (-not $msix) { throw "No .msix package was produced" }
           Write-Host "Produced package: $($msix.FullName)"
           Copy-Item $msix.FullName "$env:GITHUB_WORKSPACE\TooltipAI.msix"
-          # The package MUST be signed. Self-signed chains are not machine-trusted,
-          # so we assert a signer certificate is present rather than a Valid chain.
-          $sig = Get-AuthenticodeSignature "$env:GITHUB_WORKSPACE\TooltipAI.msix"
-          Write-Host "Signature status: $($sig.Status)"
-          if (-not $sig.SignerCertificate) {
-            throw "The .msix is NOT signed (no signer certificate present)."
-          }
-          Write-Host "Signed by: $($sig.SignerCertificate.Subject)"
 
       - name: Upload MSIX artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-msix
           path: |
+            TooltipAI.msixupload
             TooltipAI.msix
-            TooltipAI-SelfSigned.cer
           if-no-files-found: error

@@ -5,14 +5,17 @@
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
   IgnorableNamespaces="uap rescap">
 
+  <!-- TODO(Store): replace Name, Publisher and PublisherDisplayName with the
+       values from Partner Center → Tooltip AI → App identity. The upload to the
+       Store is rejected unless these match the reserved app exactly. -->
   <Identity
     Name="MiMoTeam.TooltipAI"
-    Publisher="CN=TooltipAI, O=MiMo Team, C=US"
+    Publisher="CN=REPLACE-WITH-PARTNER-CENTER-PUBLISHER-ID"
     Version="1.0.0.0" />
 
   <Properties>
     <DisplayName>Tooltip AI</DisplayName>
-    <PublisherDisplayName>MiMo Team</PublisherDisplayName>
+    <PublisherDisplayName>REPLACE_WITH_PARTNER_CENTER_PUBLISHER_DISPLAY_NAME</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
 
