@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using TooltipAI.Backend.Models;
+using TooltipAI.Backend.Security;
 using TooltipAI.Backend.Services;
 
 namespace TooltipAI.Backend.Controllers;
@@ -23,6 +24,7 @@ public sealed class LicenseController : ControllerBase
     }
 
     [HttpPost("generate")]
+    [AdminApiKey]
     public ActionResult<object> Generate([FromBody] GenerateLicenseRequest request)
     {
         var key = _licenseService.GenerateLicenseKey(
