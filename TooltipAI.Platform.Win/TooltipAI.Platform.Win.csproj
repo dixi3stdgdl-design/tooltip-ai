@@ -17,6 +17,8 @@
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.WindowsDesktop.App.WindowsForms" />
+    <Reference Include="UIAutomationClient" />
+    <Reference Include="UIAutomationTypes" />
   </ItemGroup>
 
   <!-- Windows-only files that depend on WinForms/UIA managed assemblies -->

@@ -13,7 +13,8 @@ public sealed partial class LicenseWindow : Window
     public LicenseWindow()
     {
         InitializeComponent();
-        
+        this.Closed += OnWindowClosed;
+
         // Set window size (WinUI 3 doesn't support Width/Height in XAML)
         this.AppWindow.Resize(new Windows.Graphics.SizeInt32 { Width = 450, Height = 350 });
         
@@ -145,9 +146,8 @@ public sealed partial class LicenseWindow : Window
             isSuccess ? Microsoft.UI.Colors.Green : Microsoft.UI.Colors.Red);
     }
 
-    protected override void OnClosed(WindowEventArgs e)
+    private void OnWindowClosed(object sender, WindowEventArgs e)
     {
         _usageService.Dispose();
-        base.OnClosed(e);
     }
 }

@@ -12,7 +12,7 @@ public sealed partial class PrivacySettingsWindow : Window
     public PrivacySettingsWindow()
     {
         InitializeComponent();
-        
+        this.Closed += OnWindowClosed;
         // Set window size (WinUI 3 doesn't support Width/Height in XAML)
         this.AppWindow.Resize(new Windows.Graphics.SizeInt32 { Width = 500, Height = 450 });
         
@@ -92,10 +92,9 @@ public sealed partial class PrivacySettingsWindow : Window
         }
     }
 
-    protected override void OnClosed(WindowEventArgs e)
+    private void OnWindowClosed(object sender, WindowEventArgs e)
     {
         _consentManager.Dispose();
         _blacklistService.Dispose();
-        base.OnClosed(e);
     }
 }
