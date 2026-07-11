@@ -20,6 +20,8 @@ public sealed partial class PrivacySettingsWindow : Window
         _blacklistService = new AppBlacklistService();
         
         LoadSettings();
+
+        this.Closed += OnClosed;
     }
 
     private void LoadSettings()
@@ -92,10 +94,9 @@ public sealed partial class PrivacySettingsWindow : Window
         }
     }
 
-    protected override void OnClosed(WindowEventArgs e)
+    private void OnClosed(object sender, WindowEventArgs args)
     {
         _consentManager.Dispose();
         _blacklistService.Dispose();
-        base.OnClosed(e);
     }
 }
