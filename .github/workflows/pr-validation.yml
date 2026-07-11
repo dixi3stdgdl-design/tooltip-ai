@@ -17,15 +17,25 @@ jobs:
       with:
         dotnet-version: '8.0.x'
 
+    # Only the cross-platform projects are built/tested on Linux.
+    # TooltipAI.Platform.Mac requires the macOS workload (built on macos-latest
+    # in build-macos.yml) and TooltipAI.Platform.Win targets Windows, so building
+    # the full solution here fails on ubuntu-latest.
     - name: Restore dependencies
-      run: dotnet restore
+      run: |
+        dotnet restore TooltipAI.Core/TooltipAI.Core.csproj
+        dotnet restore TooltipAI.Backend/TooltipAI.Backend.csproj
+        dotnet restore TooltipAI.Tests/TooltipAI.Tests.csproj
 
     - name: Build
-      run: dotnet build --no-restore --configuration Release
+      run: |
+        dotnet build TooltipAI.Core/TooltipAI.Core.csproj --no-restore --configuration Release
+        dotnet build TooltipAI.Backend/TooltipAI.Backend.csproj --no-restore --configuration Release
+        dotnet build TooltipAI.Tests/TooltipAI.Tests.csproj --no-restore --configuration Release
 
     - name: Run tests with coverage
       run: |
-        dotnet test --no-build --configuration Release \
+        dotnet test TooltipAI.Tests/TooltipAI.Tests.csproj --no-build --configuration Release \
           --collect:"XPlat Code Coverage" \
           --results-directory ./coverage \
           --logger "trx;LogFileName=test-results.trx"
