@@ -1,12 +1,14 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 using TooltipAI.Backend.Models;
+using TooltipAI.Backend.Security;
 using TooltipAI.Backend.Services;
 
 namespace TooltipAI.Backend.Controllers;
 
 [ApiController]
 [Route("api/admin")]
+[AdminApiKey]
 public class AdminController : ControllerBase
 {
     private readonly ILogger<AdminController> _logger;

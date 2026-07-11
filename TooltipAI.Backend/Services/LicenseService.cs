@@ -15,9 +15,17 @@ public sealed class LicenseService
     public LicenseService(IConfiguration config, ILogger<LicenseService> logger)
     {
         _logger = logger;
-        _hmacKey = config["License__HmacKey"]
+        _hmacKey = config["License:HmacKey"]
+            ?? config["License__HmacKey"]
             ?? Environment.GetEnvironmentVariable("License__HmacKey")
             ?? "dev-hmac-key-change-in-production";
+
+        if (LicenseKeyGuard.IsInsecure(_hmacKey))
+        {
+            _logger.LogWarning(
+                "License HMAC key is missing or set to an insecure default. " +
+                "License keys can be forged. Set a strong 'License:HmacKey' / 'License__HmacKey'.");
+        }
     }
 
     public LicenseService(string hmacKey, ILogger<LicenseService> logger)

@@ -3,19 +3,34 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows10.0.22621.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <RootNamespace>TooltipAI.UI</RootNamespace>
+    <Platforms>x64</Platforms>
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <WindowsPackageType>None</WindowsPackageType>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <UseWinUI>true</UseWinUI>
     <EnableMsixTooling>true</EnableMsixTooling>
+    <WindowsPackageType>MSIX</WindowsPackageType>
+    <!-- Microsoft Store signs the package on ingestion; upload it unsigned. -->
+    <AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>
+    <GenerateAppxPackageOnBuild>false</GenerateAppxPackageOnBuild>
+    <AppxBundle>Never</AppxBundle>
+    <AppxSymbolPackageEnabled>false</AppxSymbolPackageEnabled>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.2.0" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.4654" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AppxManifest Include="Package.appxmanifest">
+      <SubType>Designer</SubType>
+    </AppxManifest>
+    <Content Include="Assets\**" />
   </ItemGroup>
 
   <ItemGroup>

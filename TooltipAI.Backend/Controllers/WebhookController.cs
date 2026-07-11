@@ -12,16 +12,26 @@ public class WebhookController : ControllerBase
 {
     private readonly PaymentService _paymentService;
     private readonly ILogger<WebhookController> _logger;
+    private readonly IWebHostEnvironment _environment;
     private readonly string _webhookSecret;
+
+    private static readonly HashSet<string> PlaceholderSecrets = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "CHANGE_ME",
+        "CHANGE_ME_TO_YOUR_WEBHOOK_SECRET",
+    };
 
     public WebhookController(
         PaymentService paymentService,
         IConfiguration configuration,
+        IWebHostEnvironment environment,
         ILogger<WebhookController> logger)
     {
         _paymentService = paymentService;
         _logger = logger;
-        _webhookSecret = configuration["LemonSqueezy:WebhookSecret"] ?? string.Empty;
+        _environment = environment;
+        var secret = configuration["LemonSqueezy:WebhookSecret"] ?? string.Empty;
+        _webhookSecret = PlaceholderSecrets.Contains(secret) ? string.Empty : secret;
     }
 
     /// <summary>
@@ -112,6 +122,11 @@ public class WebhookController : ControllerBase
     [HttpPost("test")]
     public IActionResult TestWebhook([FromBody] object payload)
     {
+        if (!_environment.IsDevelopment())
+        {
+            return NotFound();
+        }
+
         _logger.LogInformation("Test webhook received: {Payload}", JsonSerializer.Serialize(payload));
         return Ok(new { status = "received", timestamp = DateTime.UtcNow });
     }
@@ -129,8 +144,14 @@ public class WebhookController : ControllerBase
     {
         if (string.IsNullOrEmpty(_webhookSecret))
         {
-            _logger.LogWarning("Webhook secret not configured - allowing in dev mode");
-            return true; // Allow in development
+            if (_environment.IsDevelopment())
+            {
+                _logger.LogWarning("Webhook secret not configured - allowing in development mode");
+                return true;
+            }
+
+            _logger.LogError("Webhook secret not configured - rejecting webhook");
+            return false; // Fail closed outside development
         }
 
         // LemonSqueezy v2 uses X-Signature header with HMAC-SHA256

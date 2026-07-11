@@ -1,0 +1,75 @@
+name: Build MSIX
+
+on:
+  workflow_call:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'TooltipAI.UI/**'
+      - 'TooltipAI.Core/**'
+      - '.github/workflows/build-msix.yml'
+
+jobs:
+  build-msix:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Restore
+        run: msbuild TooltipAI.UI/TooltipAI.UI.csproj /t:Restore /p:Configuration=Release /p:Platform=x64 /p:RuntimeIdentifier=win-x64
+
+      # Microsoft Store distribution: the package is uploaded UNSIGNED and
+      # Microsoft re-signs it during ingestion. StoreUpload mode produces the
+      # .msixupload bundle that Partner Center expects.
+      # NOTE: TooltipAI.UI/Package.appxmanifest Identity Name + Publisher must
+      # match the values reserved in Partner Center for the upload to be accepted.
+      - name: Build Store-ready package (unsigned)
+        shell: pwsh
+        run: |
+          $out = "$env:GITHUB_WORKSPACE\msix-out"
+          msbuild TooltipAI.UI/TooltipAI.UI.csproj `
+            /p:Configuration=Release `
+            /p:Platform=x64 `
+            /p:RuntimeIdentifier=win-x64 `
+            /p:GenerateAppxPackageOnBuild=true `
+            /p:AppxPackageSigningEnabled=false `
+            /p:AppxBundle=Never `
+            /p:UapAppxPackageBuildMode=StoreUpload `
+            /p:AppxPackageDir="$out\"
+          if ($LASTEXITCODE -ne 0) { throw "MSIX build failed with exit code $LASTEXITCODE" }
+
+      - name: Locate Store package
+        shell: pwsh
+        run: |
+          # Prefer the .msixupload (Partner Center upload); fall back to the raw .msix.
+          $upload = Get-ChildItem -Path "$env:GITHUB_WORKSPACE\msix-out" -Recurse -Filter *.msixupload | Select-Object -First 1
+          if ($upload) {
+            Write-Host "Produced Store upload package: $($upload.FullName)"
+            Copy-Item $upload.FullName "$env:GITHUB_WORKSPACE\TooltipAI.msixupload"
+          } else {
+            Write-Host "No .msixupload found; falling back to raw .msix."
+          }
+          $msix = Get-ChildItem -Path "$env:GITHUB_WORKSPACE\msix-out" -Recurse -Filter *.msix |
+            Where-Object { $_.Name -notlike "Microsoft.WindowsAppRuntime*" } | Select-Object -First 1
+          if (-not $msix) { throw "No .msix package was produced" }
+          Write-Host "Produced package: $($msix.FullName)"
+          Copy-Item $msix.FullName "$env:GITHUB_WORKSPACE\TooltipAI.msix"
+
+      - name: Upload MSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-msix
+          path: |
+            TooltipAI.msixupload
+            TooltipAI.msix
+          if-no-files-found: error

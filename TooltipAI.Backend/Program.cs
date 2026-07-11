@@ -87,6 +87,21 @@ builder.WebHost.ConfigureKestrel(options =>
     options.Limits.RequestHeadersTimeout = TimeSpan.FromSeconds(30);
 });
 
+// Fail fast in Production if the license signing key is missing or a known default.
+if (builder.Environment.IsProduction())
+{
+    var hmacKey = builder.Configuration["License:HmacKey"]
+        ?? builder.Configuration["License__HmacKey"]
+        ?? Environment.GetEnvironmentVariable("License__HmacKey");
+
+    if (TooltipAI.Backend.Services.LicenseKeyGuard.IsInsecure(hmacKey))
+    {
+        throw new InvalidOperationException(
+            "License HMAC key is missing or set to an insecure default. " +
+            "Set a strong 'License:HmacKey' (or 'License__HmacKey' env var) before running in Production.");
+    }
+}
+
 var app = builder.Build();
 
 app.UseMiddleware<RequestLoggingMiddleware>();

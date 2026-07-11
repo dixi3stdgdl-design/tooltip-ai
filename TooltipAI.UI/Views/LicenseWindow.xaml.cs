@@ -22,6 +22,8 @@ public sealed partial class LicenseWindow : Window
         
         LoadLicenseStatus();
         LoadUsageStats();
+
+        this.Closed += OnClosed;
     }
 
     private void LoadLicenseStatus()
@@ -145,9 +147,8 @@ public sealed partial class LicenseWindow : Window
             isSuccess ? Microsoft.UI.Colors.Green : Microsoft.UI.Colors.Red);
     }
 
-    protected override void OnClosed(WindowEventArgs e)
+    private void OnClosed(object sender, WindowEventArgs args)
     {
         _usageService.Dispose();
-        base.OnClosed(e);
     }
 }
