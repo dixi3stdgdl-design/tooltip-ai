@@ -1,0 +1,85 @@
+name: Build MSIX
+
+on:
+  workflow_call:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'TooltipAI.UI/**'
+      - 'TooltipAI.Core/**'
+      - '.github/workflows/build-msix.yml'
+
+jobs:
+  build-msix:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      # Self-signed certificate for CI. The subject MUST match the
+      # Publisher in TooltipAI.UI/Package.appxmanifest.
+      # Replace with a real code-signing cert (repo secret) for production.
+      - name: Generate self-signed signing certificate
+        shell: pwsh
+        run: |
+          $subject = "CN=TooltipAI, O=MiMo Team, C=US"
+          $cert = New-SelfSignedCertificate -Type Custom -Subject $subject `
+            -KeyUsage DigitalSignature -FriendlyName "TooltipAI CI Self-Signed" `
+            -CertStoreLocation "Cert:\CurrentUser\My" `
+            -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}")
+          $pwd = ConvertTo-SecureString -String "TooltipAI-CI-SelfSigned" -Force -AsPlainText
+          Export-PfxCertificate -Cert $cert -FilePath "$env:GITHUB_WORKSPACE\signing.pfx" -Password $pwd | Out-Null
+          Export-Certificate -Cert $cert -FilePath "$env:GITHUB_WORKSPACE\TooltipAI-SelfSigned.cer" | Out-Null
+          Write-Host "Generated self-signed certificate: $subject"
+
+      - name: Restore
+        run: msbuild TooltipAI.UI/TooltipAI.UI.csproj /t:Restore /p:Configuration=Release /p:Platform=x64 /p:RuntimeIdentifier=win-x64
+
+      - name: Build and package MSIX
+        shell: pwsh
+        run: |
+          $out = "$env:GITHUB_WORKSPACE\msix-out"
+          msbuild TooltipAI.UI/TooltipAI.UI.csproj `
+            /p:Configuration=Release `
+            /p:Platform=x64 `
+            /p:RuntimeIdentifier=win-x64 `
+            /p:GenerateAppxPackageOnBuild=true `
+            /p:AppxPackageSigningEnabled=true `
+            /p:PackageCertificateKeyFile="$env:GITHUB_WORKSPACE\signing.pfx" `
+            /p:PackageCertificatePassword="TooltipAI-CI-SelfSigned" `
+            /p:AppxBundle=Never `
+            /p:UapAppxPackageBuildMode=SideloadOnly `
+            /p:AppxPackageDir="$out\"
+          if ($LASTEXITCODE -ne 0) { throw "MSIX build failed with exit code $LASTEXITCODE" }
+
+      - name: Locate and verify .msix
+        shell: pwsh
+        run: |
+          $msix = Get-ChildItem -Path "$env:GITHUB_WORKSPACE\msix-out" -Recurse -Filter *.msix | Select-Object -First 1
+          if (-not $msix) { throw "No .msix package was produced" }
+          Write-Host "Produced package: $($msix.FullName)"
+          Copy-Item $msix.FullName "$env:GITHUB_WORKSPACE\TooltipAI.msix"
+          # Confirm the package is signed
+          $sig = Get-AuthenticodeSignature "$env:GITHUB_WORKSPACE\TooltipAI.msix"
+          Write-Host "Signature status: $($sig.Status)"
+          if ($sig.Status -ne "Valid" -and $sig.Status -ne "UnknownError") {
+            Write-Host "Note: self-signed status may report as not trusted by the machine, which is expected."
+          }
+
+      - name: Upload MSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-msix
+          path: |
+            TooltipAI.msix
+            TooltipAI-SelfSigned.cer
+          if-no-files-found: error

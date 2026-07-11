@@ -325,26 +325,39 @@ jobs:
           echo "TTL: 3600" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
 
+  # ─── FASE 3b: Windows MSIX package (self-signed) ────────────
+  windows-msix:
+    uses: ./.github/workflows/build-msix.yml
+
   # ─── FASE 4: Security Audit + Release ────────────────────────
   release:
     runs-on: ubuntu-latest
-    needs: deploy
+    needs: [deploy, windows-msix]
     if: success()
     permissions:
       contents: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Download security hashes
         uses: actions/download-artifact@v4
         with:
           name: security-hashes
 
+      - name: Download Windows MSIX package
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-msix
+          path: ./msix
+
       - name: Create GitHub Release (Hardened)
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v1.0.0-${{ github.run_number }}
+          files: |
+            ./msix/TooltipAI.msix
+            ./msix/TooltipAI-SelfSigned.cer
           name: "TooltipAI v1.0.0 (Hardened Build ${{ github.run_number }})"
           body: |
             ## Security Features
