@@ -1,0 +1,54 @@
+=============================================
+  TooltipAI - Quick Test Reference
+=============================================
+
+BUILD (run once):
+  cd tooltip-ai
+  dotnet build -c Release
+
+RUN:
+  1. dotnet run --project TooltipAI.Tray -c Release
+     -> System tray icon appears
+
+  2. dotnet run --project TooltipAI.UI -c Release
+     -> Overlay window appears (click-through)
+
+TEST:
+  Hover mouse over elements in these apps:
+
+  Notepad:
+    - Menu bar (File, Edit, etc.) -> should show "MenuItem"
+    - Text area -> should show "Edit"
+    - Status bar -> should show "StatusBar"
+
+  Chrome:
+    - Address bar -> should show "Edit"
+    - Back/Forward buttons -> should show "Button"
+    - Tab bar -> should show "TabItem"
+
+  Excel:
+    - Cell grid -> should show "DataGrid" or "DataItem"
+    - Ribbon buttons -> should show "Button"
+    - Formula bar -> should show "Edit"
+
+  VS Code:
+    - Editor area -> should show "Edit" or "Document"
+    - Sidebar icons -> should show "Button"
+    - Terminal -> should show "Edit"
+
+WHAT TO LOOK FOR:
+  BEFORE (broken): tooltip shows "Unknown" / "Window" for everything
+  AFTER (fixed):   tooltip shows real control type + element name
+
+  Example of working tooltip:
+    [DEV] chrome.exe - Google Search
+    Type: Button | Class: Chrome_WidgetWin_1 | Status: Enabled
+    Click to activate
+
+TROUBLESHOOTING:
+  - If tooltip shows "Window" only -> UIA service not loaded, check logs
+  - If tooltip doesn't appear -> pipe connection failed, restart both exe
+  - If app crashes -> check %APPDATA%/TooltipAI/Logs/
+
+LOG FILES:
+  %APPDATA%/TooltipAI/Logs/tooltip_ai_YYYYMMDD.log

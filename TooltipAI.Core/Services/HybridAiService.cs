@@ -1,6 +1,7 @@
 using System.Text;
 using TooltipAI.Core.Interfaces;
 using TooltipAI.Core.Models;
+using SoftwareCategory = TooltipAI.Core.Services.SoftwareCategory;
 using ElementInfo = TooltipAI.Core.Models.ElementInfo;
 
 namespace TooltipAI.Core.Services;

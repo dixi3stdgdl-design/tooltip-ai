@@ -1,35 +1,27 @@
-using System.Runtime.InteropServices;
 using TooltipAI.Core.Interfaces;
 using TooltipAI.Core.Models;
+using TooltipAI.Platform.Win.Interop;
 
 namespace TooltipAI.Platform.Win.Services;
 
 /// <summary>
-/// Windows UI Automation implementation using Win32 UI Automation COM APIs.
+/// Windows UI Automation implementation using raw COM Interop with UIAutomationCore.dll.
+/// Extracts real element information (name, control type, automation ID, help text)
+/// from the UI element under the cursor.
 /// </summary>
 public sealed class WindowsUIAutomationService : IUIAutomationService
 {
-    private const int UIA_ElementCreatedEventId = 20001;
-
-    [DllImport("oleacc.dll")]
-    private static extern int LibleoleaccAccessibleObjectFromPoint(POINT pt, [MarshalAs(UnmanagedType.IUnknown)] out object? ppacc, out object? pvarChildren);
-
-    [DllImport("user32.dll")]
-    private static extern bool GetCursorPos(out POINT lpPoint);
-
     public bool IsAvailable => true;
 
     public ElementInfo? GetElementFromPoint(int x, int y)
     {
         try
         {
-            var point = new POINT { X = x, Y = y };
-            var hr = LibleoleaccAccessibleObjectFromPoint(point, out var accessible, out _);
-
-            if (hr != 0 || accessible == null)
+            var element = UIAutomationInterop.ElementFromPoint(x, y);
+            if (element == null)
                 return null;
 
-            return ExtractElementInfo(accessible);
+            return ExtractElementInfo(element);
         }
         catch
         {
@@ -41,8 +33,11 @@ public sealed class WindowsUIAutomationService : IUIAutomationService
     {
         try
         {
-            GetCursorPos(out var point);
-            return GetElementFromPoint(point.X, point.Y);
+            var element = UIAutomationInterop.GetFocusedElement();
+            if (element == null)
+                return null;
+
+            return ExtractElementInfo(element);
         }
         catch
         {
@@ -50,40 +45,65 @@ public sealed class WindowsUIAutomationService : IUIAutomationService
         }
     }
 
-    private ElementInfo ExtractElementInfo(object accessible)
+    private static ElementInfo ExtractElementInfo(UIAutomationInterop.IUIAutomationElement element)
     {
+        var name = UIAutomationInterop.GetStringProperty(
+            element, UIAutomationInterop.UIA_NamePropertyId);
+
+        var className = UIAutomationInterop.GetStringProperty(
+            element, UIAutomationInterop.UIA_ClassNamePropertyId);
+
+        var automationId = UIAutomationInterop.GetStringProperty(
+            element, UIAutomationInterop.UIA_AutomationIdPropertyId);
+
+        var helpText = UIAutomationInterop.GetStringProperty(
+            element, UIAutomationInterop.UIA_HelpTextPropertyId);
+
+        var isEnabled = UIAutomationInterop.GetBoolProperty(
+            element, UIAutomationInterop.UIA_IsEnabledPropertyId);
+
+        var isKeyboardFocusable = UIAutomationInterop.GetBoolProperty(
+            element, UIAutomationInterop.UIA_IsKeyboardFocusablePropertyId);
+
+        var controlTypeId = 0;
         try
         {
-            dynamic acc = accessible;
-
-            var name = TryGet(() => acc.CurrentName as string) ?? "Unknown";
-            var controlType = TryGet(() => acc.CurrentControlType.ToString()) ?? "Unknown";
-            var className = TryGet(() => acc.CurrentClassName as string) ?? "";
-            var automationId = TryGet(() => acc.CurrentAutomationId as string) ?? "";
-
-            return new ElementInfo
-            {
-                Name = name,
-                ControlType = controlType,
-                ClassName = className,
-                AutomationId = automationId
-            };
+            var hr = element.get_CurrentControlType(out controlTypeId);
+            if (hr != 0)
+                controlTypeId = 0;
         }
         catch
         {
-            return new ElementInfo { Name = "Unknown", ControlType = "Unknown" };
+            controlTypeId = 0;
         }
-    }
 
-    private T? TryGet<T>(Func<T> getter) where T : class
-    {
-        try { return getter(); } catch { return null; }
-    }
+        var controlType = UIAutomationInterop.MapControlType(controlTypeId);
 
-    [StructLayout(LayoutKind.Sequential)]
-    private struct POINT
-    {
-        public int X;
-        public int Y;
+        var processName = string.Empty;
+        try
+        {
+            var hr = element.get_CurrentProcessId(out var processId);
+            if (hr == 0 && processId > 0)
+            {
+                var proc = System.Diagnostics.Process.GetProcessById(processId);
+                processName = proc.ProcessName;
+            }
+        }
+        catch
+        {
+            // Process may have exited or access denied
+        }
+
+        return new ElementInfo
+        {
+            Name = name,
+            ControlType = controlType,
+            ClassName = className,
+            AutomationId = automationId,
+            HelpText = helpText,
+            IsEnabled = isEnabled,
+            IsKeyboardFocusable = isKeyboardFocusable,
+            ProcessName = processName
+        };
     }
 }
