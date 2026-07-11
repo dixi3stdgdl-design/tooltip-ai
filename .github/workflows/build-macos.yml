@@ -45,7 +45,8 @@ jobs:
             -c Release \
             -r ${{ matrix.runtime }} \
             --self-contained \
-            -p:PublishTrimmed=false
+            -p:PublishTrimmed=true \
+            -p:LinkMode=None
 
       - name: Create App Bundle
         run: |
