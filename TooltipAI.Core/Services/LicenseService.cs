@@ -176,7 +176,8 @@ public class LicenseService : IDisposable
 
             if (_firstRunDate is null && !IsLicensed)
             {
-                StartTrial();
+                _firstRunDate = DateTime.UtcNow;
+                TrySaveLicenseDuringInitialization();
             }
         }
         catch (Exception ex)
@@ -185,7 +186,22 @@ public class LicenseService : IDisposable
             if (_logger is null)
                 Trace.TraceError($"Failed to load license from '{_settingsPath}': {ex}");
             _firstRunDate = DateTime.UtcNow;
+            _licenseKey = null;
+            TrySaveLicenseDuringInitialization();
+        }
+    }
+
+    private void TrySaveLicenseDuringInitialization()
+    {
+        try
+        {
             SaveLicense();
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex, "Continuing with in-memory trial because {Path} could not be saved", _settingsPath);
+            if (_logger is null)
+                Trace.TraceWarning($"Continuing with in-memory trial because '{_settingsPath}' could not be saved: {ex}");
         }
     }
 

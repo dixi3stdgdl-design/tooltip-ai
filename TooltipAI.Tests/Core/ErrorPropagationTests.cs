@@ -54,6 +54,23 @@ public class ErrorPropagationTests
             () => service.CheckForUpdateAsync(cts.Token));
     }
 
+    [Fact]
+    public void LicenseInitialization_ContinuesWhenTrialCannotBePersisted()
+    {
+        var path = CreateDirectoryPath();
+
+        try
+        {
+            using var service = new LicenseService(path);
+
+            Assert.True(service.IsTrialActive);
+        }
+        finally
+        {
+            Directory.Delete(path, recursive: true);
+        }
+    }
+
     private static string CreateDirectoryPath()
     {
         var path = Path.Combine(Path.GetTempPath(), $"tooltip-ai-error-{Guid.NewGuid()}");
