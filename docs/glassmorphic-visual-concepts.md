@@ -173,4 +173,4 @@
 ---
 
 **Documento técnico interno.**  
-**Para desarrollo: hello@mimo.dev**
+**Para desarrollo: Dixstdgdl@hotmail.com**

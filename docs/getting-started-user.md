@@ -113,5 +113,5 @@ Delete `settings.json` or set all values to defaults. Tooltip AI will recreate i
 ## Support
 
 - **Issues:** [GitHub Issues](https://github.com/dixi3stdgdl-design/tooltip-ai/issues)
-- **Email:** hello@mimo.dev
+- **Email:** Dixstdgdl@hotmail.com
 - **GitHub:** [@dixi3stdgdl-design](https://github.com/dixi3stdgdl-design)

@@ -341,4 +341,4 @@ Para Google: Esto es una ventaja — les garantiza que ningún competidor puede 
 ---
 
 **Documento de defensa técnica. Solo para presentación a Google Gemini Partnership.**  
-**Para preguntas: hello@mimo.dev**
+**Para preguntas: Dixstdgdl@hotmail.com**

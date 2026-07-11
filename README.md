@@ -132,4 +132,4 @@ cd tooltip-ai
 
 **Octavio Garcia** — MiMo Team  
 GitHub: [@dixi3stdgdl-design](https://github.com/dixi3stdgdl-design)  
-Email: hello@mimo.dev
+Email: Dixstdgdl@hotmail.com
