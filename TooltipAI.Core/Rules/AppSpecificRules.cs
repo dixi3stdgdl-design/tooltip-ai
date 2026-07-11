@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using TooltipAI.Core.Models;
 
 namespace TooltipAI.Core.Rules;
@@ -7,6 +9,7 @@ public class AppSpecificRules : IDisposable
 {
     private readonly string _rulesPath;
     private readonly FileSystemWatcher? _watcher;
+    private readonly ILogger? _logger;
     private List<RuleDefinition> _rules = new();
     private DateTime _lastLoad = DateTime.MinValue;
 
@@ -15,8 +18,9 @@ public class AppSpecificRules : IDisposable
     public int RuleCount => _rules.Count;
     public DateTime LastUpdated => _lastLoad;
 
-    public AppSpecificRules(string? customPath = null)
+    public AppSpecificRules(string? customPath = null, ILogger? logger = null)
     {
+        _logger = logger;
         var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
         var appFolder = Path.Combine(appDataPath, "TooltipAI");
         Directory.CreateDirectory(appFolder);
@@ -28,7 +32,14 @@ public class AppSpecificRules : IDisposable
             CopyDefaultRules();
         }
 
-        _rules = LoadRules();
+        try
+        {
+            _rules = LoadRules();
+        }
+        catch (Exception ex)
+        {
+            ReportError(ex, "load");
+        }
 
         try
         {
@@ -40,9 +51,11 @@ public class AppSpecificRules : IDisposable
             watcher.Changed += OnRulesChanged;
             _watcher = watcher;
         }
-        catch
+        catch (Exception ex)
         {
-            // FileSystemWatcher not available in all contexts
+            _logger?.LogWarning(ex, "Rules file watcher is unavailable for {Path}", _rulesPath);
+            if (_logger is null)
+                Trace.TraceWarning($"Rules file watcher is unavailable for '{_rulesPath}': {ex}");
         }
     }
 
@@ -90,8 +103,9 @@ public class AppSpecificRules : IDisposable
             _rules = LoadRules();
             return true;
         }
-        catch
+        catch (Exception ex)
         {
+            ReportError(ex, "reload");
             return false;
         }
     }
@@ -160,23 +174,17 @@ public class AppSpecificRules : IDisposable
 
     private List<RuleDefinition> LoadRules()
     {
-        try
+        if (File.Exists(_rulesPath))
         {
-            if (File.Exists(_rulesPath))
+            var json = File.ReadAllText(_rulesPath);
+            var rules = JsonSerializer.Deserialize<List<RuleDefinition>>(json, new JsonSerializerOptions
             {
-                var json = File.ReadAllText(_rulesPath);
-                var rules = JsonSerializer.Deserialize<List<RuleDefinition>>(json, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-                _lastLoad = DateTime.UtcNow;
-                return rules ?? new List<RuleDefinition>();
-            }
+                PropertyNameCaseInsensitive = true
+            });
+            _lastLoad = DateTime.UtcNow;
+            return rules ?? new List<RuleDefinition>();
         }
-        catch
-        {
-            // Use empty list on error
-        }
+
         return new List<RuleDefinition>();
     }
 
@@ -195,9 +203,9 @@ public class AppSpecificRules : IDisposable
                 File.WriteAllText(_rulesPath, content);
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // If embedded resource not found, create minimal default
+            ReportError(ex, "copy default");
             var defaultRules = new List<RuleDefinition>
             {
                 new()
@@ -221,8 +229,23 @@ public class AppSpecificRules : IDisposable
         if (lastWrite <= _lastLoad)
             return;
 
-        _rules = LoadRules();
-        RulesChanged?.Invoke();
+        try
+        {
+            var rules = LoadRules();
+            _rules = rules;
+            RulesChanged?.Invoke();
+        }
+        catch (Exception ex)
+        {
+            ReportError(ex, "reload after file change");
+        }
+    }
+
+    private void ReportError(Exception ex, string operation)
+    {
+        _logger?.LogError(ex, "Failed to {Operation} rules from {Path}", operation, _rulesPath);
+        if (_logger is null)
+            Trace.TraceError($"Failed to {operation} rules from '{_rulesPath}': {ex}");
     }
 
     public void Dispose()

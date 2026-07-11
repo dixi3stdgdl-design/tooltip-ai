@@ -130,7 +130,11 @@ static class Program
             _serviceProcess = null;
             _trayIcon?.SetStatus(false);
         }
-        catch { }
+        catch (Exception ex)
+        {
+            _trayIcon?.SetStatus(_serviceProcess is { HasExited: false });
+            _trayIcon?.ShowNotification("Tooltip AI", $"Stop failed: {ex.Message}", true);
+        }
     }
 
     private static void ToggleService()
@@ -182,9 +186,9 @@ static class Program
             });
             _trayIcon?.ShowNotification("Tooltip AI", "Settings opened");
         }
-        catch
+        catch (Exception ex)
         {
-            _trayIcon?.ShowNotification("Tooltip AI", "Could not open settings", true);
+            _trayIcon?.ShowNotification("Tooltip AI", $"Could not open settings: {ex.Message}", true);
         }
     }
 

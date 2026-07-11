@@ -43,7 +43,7 @@ public sealed class UserSession : IDisposable
             var hashedPassword = HashPassword(password);
             
             // Create session
-            _currentSession = new UserSessionData
+            var session = new UserSessionData
             {
                 UserId = Guid.NewGuid().ToString(),
                 Email = email,
@@ -52,15 +52,16 @@ public sealed class UserSession : IDisposable
                 ExpiresAt = DateTime.UtcNow.AddDays(30)
             };
 
-            SaveSession(_currentSession);
-            SessionChanged?.Invoke(_currentSession);
+            SaveSession(session);
+            _currentSession = session;
+            SessionChanged?.Invoke(session);
 
             _logger.LogInformation("User logged in: {Email}", email);
 
             return new AuthResult
             {
                 Success = true,
-                Session = _currentSession
+                Session = session
             };
         }
         catch (Exception ex)
@@ -76,7 +77,7 @@ public sealed class UserSession : IDisposable
         {
             await Task.Delay(100);
 
-            _currentSession = new UserSessionData
+            var session = new UserSessionData
             {
                 UserId = Guid.NewGuid().ToString(),
                 Email = email,
@@ -86,15 +87,16 @@ public sealed class UserSession : IDisposable
                 ExpiresAt = DateTime.UtcNow.AddDays(30)
             };
 
-            SaveSession(_currentSession);
-            SessionChanged?.Invoke(_currentSession);
+            SaveSession(session);
+            _currentSession = session;
+            SessionChanged?.Invoke(session);
 
             _logger.LogInformation("User registered: {Email}", email);
 
             return new AuthResult
             {
                 Success = true,
-                Session = _currentSession
+                Session = session
             };
         }
         catch (Exception ex)
@@ -151,7 +153,8 @@ public sealed class UserSession : IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to save session");
+            _logger.LogError(ex, "Failed to save session");
+            throw;
         }
     }
 

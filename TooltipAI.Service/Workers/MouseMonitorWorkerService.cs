@@ -50,10 +50,10 @@ public class MouseMonitorWorkerService : IHostedService
         return Task.CompletedTask;
     }
 
-    public Task StopAsync(CancellationToken cancellationToken)
+    public async Task StopAsync(CancellationToken cancellationToken)
     {
         _logger.LogInfo("Stopping mouse monitor", "WorkerService");
         _worker?.Stop();
-        return Task.CompletedTask;
+        await _pipeService.StopAsync(cancellationToken);
     }
 }

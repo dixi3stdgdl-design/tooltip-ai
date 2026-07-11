@@ -265,8 +265,9 @@ public class ResponseCacheService : IDisposable
                 command.CommandText = "SELECT COUNT(*) FROM cache";
                 return Convert.ToInt32(command.ExecuteScalar());
             }
-            catch
+            catch (Exception ex)
             {
+                _logger?.LogError(ex, "Cache entry count failed");
                 return 0;
             }
         }

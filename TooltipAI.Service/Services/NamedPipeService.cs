@@ -1,6 +1,7 @@
 using System.IO.Pipes;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using TooltipAI.Core.Models;
 
 namespace TooltipAI.Service.Services;
@@ -10,12 +11,22 @@ public class NamedPipeService : IDisposable
     private const string PipeName = "TooltipAI_Pipe";
     private readonly List<NamedPipeServerStream> _clients = new();
     private readonly object _lock = new();
+    private readonly ILogger<NamedPipeService> _logger;
     private CancellationTokenSource? _cts;
+    private Task? _acceptTask;
+
+    public NamedPipeService(ILogger<NamedPipeService> logger)
+    {
+        _logger = logger;
+    }
 
     public void Start()
     {
+        if (_cts is not null)
+            throw new InvalidOperationException("Named pipe service is already running.");
+
         _cts = new CancellationTokenSource();
-        _ = AcceptClientsLoopAsync(_cts.Token);
+        _acceptTask = AcceptClientsLoopAsync(_cts.Token);
     }
 
     private async Task AcceptClientsLoopAsync(CancellationToken ct)
@@ -42,14 +53,21 @@ public class NamedPipeService : IDisposable
                     server = null;
                 }
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
                 break;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[PIPE] Error: {ex.Message}");
-                await Task.Delay(1000, ct);
+                _logger.LogError(ex, "Named pipe accept loop failed");
+                try
+                {
+                    await Task.Delay(1000, ct);
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                {
+                    break;
+                }
             }
             finally
             {
@@ -81,25 +99,60 @@ public class NamedPipeService : IDisposable
                 await client.WriteAsync(message, ct);
                 await client.FlushAsync(ct);
             }
-            catch
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Removing a disconnected named pipe client");
                 lock (_lock)
                 {
                     _clients.Remove(client);
                 }
+                client.Dispose();
             }
+        }
+    }
+
+    public async Task StopAsync(CancellationToken ct = default)
+    {
+        var cts = _cts;
+        if (cts is null)
+            return;
+
+        _cts = null;
+        cts.Cancel();
+
+        var acceptTask = _acceptTask;
+        _acceptTask = null;
+        try
+        {
+            if (acceptTask is not null)
+                await acceptTask.WaitAsync(ct);
+        }
+        finally
+        {
+            lock (_lock)
+            {
+                foreach (var client in _clients)
+                    client.Dispose();
+                _clients.Clear();
+            }
+
+            cts.Dispose();
         }
     }
 
     public void Dispose()
     {
-        _cts?.Cancel();
-        lock (_lock)
+        try
         {
-            foreach (var client in _clients)
-                client.Dispose();
-            _clients.Clear();
+            StopAsync().GetAwaiter().GetResult();
         }
-        _cts?.Dispose();
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to stop named pipe service cleanly");
+        }
     }
 }

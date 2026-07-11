@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Logging;
@@ -56,8 +57,17 @@ public class LicenseService : IDisposable
 
         if (ValidateLicenseKey(key))
         {
+            var previousKey = _licenseKey;
             _licenseKey = key;
-            SaveLicense();
+            try
+            {
+                SaveLicense();
+            }
+            catch
+            {
+                _licenseKey = previousKey;
+                throw;
+            }
             LicenseStatusChanged?.Invoke(true);
             return true;
         }
@@ -70,7 +80,15 @@ public class LicenseService : IDisposable
         if (_firstRunDate is null)
         {
             _firstRunDate = DateTime.UtcNow;
-            SaveLicense();
+            try
+            {
+                SaveLicense();
+            }
+            catch
+            {
+                _firstRunDate = null;
+                throw;
+            }
         }
     }
 
@@ -164,6 +182,8 @@ public class LicenseService : IDisposable
         catch (Exception ex)
         {
             _logger?.LogError(ex, "Failed to load license from {Path}, starting fresh trial", _settingsPath);
+            if (_logger is null)
+                Trace.TraceError($"Failed to load license from '{_settingsPath}': {ex}");
             _firstRunDate = DateTime.UtcNow;
             SaveLicense();
         }
@@ -184,6 +204,9 @@ public class LicenseService : IDisposable
         catch (Exception ex)
         {
             _logger?.LogError(ex, "Failed to save license to {Path}", _settingsPath);
+            if (_logger is null)
+                Trace.TraceError($"Failed to save license to '{_settingsPath}': {ex}");
+            throw;
         }
     }
 

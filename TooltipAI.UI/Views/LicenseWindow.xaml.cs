@@ -126,10 +126,17 @@ public sealed partial class LicenseWindow : Window
         
         if (result == ContentDialogResult.Primary)
         {
-            _licenseService.StartTrial();
-            ShowMessage("License deactivated.", true);
-            LoadLicenseStatus();
-            LoadUsageStats();
+            try
+            {
+                _licenseService.StartTrial();
+                ShowMessage("License deactivated.", true);
+                LoadLicenseStatus();
+                LoadUsageStats();
+            }
+            catch (Exception ex)
+            {
+                ShowMessage($"Deactivation failed: {ex.Message}", false);
+            }
         }
     }
 

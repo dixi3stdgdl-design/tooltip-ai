@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 
@@ -44,8 +45,10 @@ public class SettingsService : IDisposable
     {
         lock (_lock)
         {
-            update(_settings);
-            SaveSettings(_settings);
+            var updated = CloneSettings(_settings);
+            update(updated);
+            SaveSettings(updated);
+            _settings = updated;
         }
     }
 
@@ -53,8 +56,9 @@ public class SettingsService : IDisposable
     {
         lock (_lock)
         {
-            _settings = new AppSettings();
-            SaveSettings(_settings);
+            var defaults = new AppSettings();
+            SaveSettings(defaults);
+            _settings = defaults;
         }
     }
 
@@ -71,6 +75,8 @@ public class SettingsService : IDisposable
         catch (Exception ex)
         {
             _logger?.LogError(ex, "Failed to load settings from {Path}", _settingsPath);
+            if (_logger is null)
+                Trace.TraceError($"Failed to load settings from '{_settingsPath}': {ex}");
         }
         return new AppSettings();
     }
@@ -86,6 +92,9 @@ public class SettingsService : IDisposable
         catch (Exception ex)
         {
             _logger?.LogError(ex, "Failed to save settings to {Path}", _settingsPath);
+            if (_logger is null)
+                Trace.TraceError($"Failed to save settings to '{_settingsPath}': {ex}");
+            throw;
         }
     }
 
@@ -101,6 +110,28 @@ public class SettingsService : IDisposable
         }
 
         SettingsChanged?.Invoke(_settings);
+    }
+
+    private static AppSettings CloneSettings(AppSettings settings)
+    {
+        return new AppSettings
+        {
+            IsEnabled = settings.IsEnabled,
+            ShowAiContext = settings.ShowAiContext,
+            TooltipDelayMs = settings.TooltipDelayMs,
+            TooltipMaxWidth = settings.TooltipMaxWidth,
+            TooltipMaxHeight = settings.TooltipMaxHeight,
+            Theme = settings.Theme,
+            Language = settings.Language,
+            EnableNotifications = settings.EnableNotifications,
+            EnableSound = settings.EnableSound,
+            ApiEndpoint = settings.ApiEndpoint,
+            ApiKey = settings.ApiKey,
+            ApiTimeoutMs = settings.ApiTimeoutMs,
+            EnableTelemetry = settings.EnableTelemetry,
+            LastWindowState = settings.LastWindowState,
+            LastUpdated = settings.LastUpdated
+        };
     }
 
     public void Dispose()

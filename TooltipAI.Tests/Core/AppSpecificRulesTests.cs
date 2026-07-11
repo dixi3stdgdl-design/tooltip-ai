@@ -180,6 +180,16 @@ public class AppSpecificRulesTests : IDisposable
     }
 
     [Fact]
+    public void FailedReloadShouldPreserveCurrentRules()
+    {
+        var initialCount = _rules.RuleCount;
+        File.WriteAllText(_tempRulesPath, "{invalid json");
+
+        _rules.ReloadRules().Should().BeFalse();
+        _rules.RuleCount.Should().Be(initialCount);
+    }
+
+    [Fact]
     public void ShouldHandleSpanishNames()
     {
         var element = new ElementInfo
