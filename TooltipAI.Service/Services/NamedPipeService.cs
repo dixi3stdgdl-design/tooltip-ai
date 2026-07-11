@@ -74,6 +74,8 @@ public class NamedPipeService : IDisposable
             snapshot = _clients.ToList();
         }
 
+        Console.WriteLine($"[PIPE] Sending to {snapshot.Count} clients: {data.Element?.Name} | {data.Element?.ControlType}");
+
         foreach (var client in snapshot)
         {
             try

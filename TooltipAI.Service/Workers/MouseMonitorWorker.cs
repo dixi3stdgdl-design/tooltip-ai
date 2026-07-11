@@ -166,6 +166,7 @@ public class MouseMonitorWorker
 
             _vizService.PopulateVisualization(tooltipData, category, processName ?? "Unknown");
 
+            Console.WriteLine($"[MOUSE] Sending: {element.Name} | {element.ControlType} | {category} | pipe clients: check above");
             await _pipeService.SendTooltipDataAsync(tooltipData, CancellationToken.None);
         }
         catch (Exception ex)
