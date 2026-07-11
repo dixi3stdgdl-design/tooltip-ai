@@ -7,14 +7,18 @@ echo.
 
 cd /d "%~dp0\.."
 
-echo [1] Building...
-dotnet build -c Release
-if %ERRORLEVEL% NEQ 0 (
-    echo BUILD FAILED
-    pause
-    exit /b 1
-)
-echo [OK] Build succeeded
+echo [1] Building projects...
+dotnet build TooltipAI.Core\TooltipAI.Core.csproj -c Release
+if %ERRORLEVEL% NEQ 0 ( echo CORE FAILED & pause & exit /b 1 )
+dotnet build TooltipAI.Platform.Win\TooltipAI.Platform.Win.csproj -c Release
+if %ERRORLEVEL% NEQ 0 ( echo PLATFORM.WIN FAILED & pause & exit /b 1 )
+dotnet build TooltipAI.Service\TooltipAI.Service.csproj -c Release
+if %ERRORLEVEL% NEQ 0 ( echo SERVICE FAILED & pause & exit /b 1 )
+dotnet build TooltipAI.Tray\TooltipAI.Tray.csproj -c Release
+if %ERRORLEVEL% NEQ 0 ( echo TRAY FAILED & pause & exit /b 1 )
+dotnet build TooltipAI.UI\TooltipAI.UI.csproj -c Release
+if %ERRORLEVEL% NEQ 0 ( echo UI FAILED & pause & exit /b 1 )
+echo [OK] All projects built
 echo.
 
 echo [2] Publishing...
@@ -22,10 +26,11 @@ dotnet publish TooltipAI.Tray\TooltipAI.Tray.csproj -c Release -o publish\Tray -
 dotnet publish TooltipAI.Service\TooltipAI.Service.csproj -c Release -o publish\Service --self-contained false
 dotnet publish TooltipAI.UI\TooltipAI.UI.csproj -c Release -o publish\UI --self-contained false
 
-echo [3] Copying files...
+echo [3] Copying Service to Tray directory...
 copy /Y publish\Service\TooltipAI.Service.exe publish\Tray\ >nul
 copy /Y publish\Service\*.dll publish\Tray\ >nul
 copy /Y publish\Service\*.json publish\Tray\ >nul
+copy /Y publish\Service\TooltipAI.Platform.Win.dll publish\Tray\ >nul
 
 echo.
 echo ============================================

@@ -19,10 +19,10 @@
     <FrameworkReference Include="Microsoft.WindowsDesktop.App.WindowsForms" />
   </ItemGroup>
 
-  <!-- Windows-only files that depend on WinForms/UIA managed assemblies -->
+  <!-- Files excluded from build (depend on APIs not available in current SDK) -->
   <ItemGroup>
     <Compile Remove="Services\WindowsActionExecutor.cs" />
-    <Compile Remove="Rendering\GlassmorphicRenderer.cs" Condition="!$([MSBuild]::IsOSPlatform('Windows'))" />
+    <Compile Remove="Rendering\GlassmorphicRenderer.cs" />
   </ItemGroup>
 
   <ItemGroup>
