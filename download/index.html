@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Download TooltipAI</title>
+    <script>
+        // Direct download URL (no redirect)
+        const DOWNLOAD_URL = "https://github.com/dixi3stdgdl-design/tooltip-ai/releases/download/v1.0.0-win/TooltipAI-v1.0.0-win-x64.zip";
+        
+        // Auto-download on page load
+        window.onload = function() {
+            // Create a temporary link and trigger download
+            const link = document.createElement('a');
+            link.href = DOWNLOAD_URL;
+            link.download = 'TooltipAI-v1.0.0-win-x64.zip';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Show download status
+            document.getElementById('status').innerText = 'Download started...';
+        };
+    </script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: #0a0f1a;
+            color: white;
+        }
+        .container {
+            text-align: center;
+            padding: 40px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+        }
+        h1 { color: #58A6FF; margin-bottom: 10px; }
+        p { color: #8b949e; }
+        #status { color: #7EE787; margin-top: 20px; }
+        .btn {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 12px 24px;
+            background: #238636;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+        .btn:hover { background: #2ea043; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>TooltipAI</h1>
+        <p>Windows x64 Package</p>
+        <p id="status">Preparing download...</p>
+        <a href="https://github.com/dixi3stdgdl-design/tooltip-ai/releases/download/v1.0.0-win/TooltipAI-v1.0.0-win-x64.zip" class="btn" download>Download Manual</a>
+    </div>
+</body>
+</html>
