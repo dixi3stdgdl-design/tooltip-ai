@@ -127,7 +127,14 @@ public sealed class UserSession : IDisposable
 
     private void SaveSession(UserSessionData session)
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(_sessionPath)!);
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(_sessionPath)!);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to create session directory");
+        }
         JsonFile.Save(_sessionPath, session, _logger, description: "session");
     }
 
