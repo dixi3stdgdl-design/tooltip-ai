@@ -24,8 +24,8 @@ internal static class UIAutomationInterop
     [StructLayout(LayoutKind.Sequential)]
     public struct UIAPoint
     {
-        public double x;
-        public double y;
+        public int x;
+        public int y;
     }
 
     #endregion
@@ -242,9 +242,6 @@ internal static class UIAutomationInterop
 
         [PreserveSig]
         int get_CurrentIsProtected([MarshalAs(UnmanagedType.Bool)] out bool isProtected);
-
-        [PreserveSig]
-        int get_CurrentControlType(out int controlTypeId, out IntPtr ppRetVal);
 
         [PreserveSig]
         int get_CurrentLiveSetting(out int liveSetting);
