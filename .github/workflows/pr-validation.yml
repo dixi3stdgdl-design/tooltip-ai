@@ -51,8 +51,13 @@ jobs:
           exit 1
         fi
 
+    # Scan only the restored cross-platform projects; a solution-wide scan
+    # would fail on the unrestored Windows/macOS projects.
     - name: Security scan
-      run: dotnet list package --vulnerabilities --include-transitive
+      run: |
+        dotnet list TooltipAI.Core/TooltipAI.Core.csproj package --vulnerabilities --include-transitive
+        dotnet list TooltipAI.Backend/TooltipAI.Backend.csproj package --vulnerabilities --include-transitive
+        dotnet list TooltipAI.Tests/TooltipAI.Tests.csproj package --vulnerabilities --include-transitive
       continue-on-error: false
 
     - name: Upload test results
