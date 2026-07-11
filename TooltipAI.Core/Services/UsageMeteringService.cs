@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 
@@ -40,9 +41,11 @@ public class UsageMeteringService : IDisposable
             };
             _watcher.Changed += OnUsageChanged;
         }
-        catch
+        catch (Exception ex)
         {
-            // FileSystemWatcher not available in all contexts
+            _logger?.LogWarning(ex, "Usage file watcher is unavailable for {Path}", _usagePath);
+            if (_logger is null)
+                Trace.TraceWarning($"Usage file watcher is unavailable for '{_usagePath}': {ex}");
         }
     }
 
@@ -50,16 +53,17 @@ public class UsageMeteringService : IDisposable
     {
         lock (_lock)
         {
-            // Reset if new day
-            if (_data.LastResetDate.Date < DateTime.UtcNow.Date)
+            var updated = CloneData(_data);
+            if (updated.LastResetDate.Date < DateTime.UtcNow.Date)
             {
-                _data.DailyCount = 0;
-                _data.LastResetDate = DateTime.UtcNow;
+                updated.DailyCount = 0;
+                updated.LastResetDate = DateTime.UtcNow;
             }
 
-            _data.DailyCount++;
-            _data.TotalCount++;
-            SaveData(_data);
+            updated.DailyCount++;
+            updated.TotalCount++;
+            SaveData(updated);
+            _data = updated;
         }
     }
 
@@ -67,12 +71,13 @@ public class UsageMeteringService : IDisposable
     {
         lock (_lock)
         {
-            // Reset if new day
             if (_data.LastResetDate.Date < DateTime.UtcNow.Date)
             {
-                _data.DailyCount = 0;
-                _data.LastResetDate = DateTime.UtcNow;
-                SaveData(_data);
+                var updated = CloneData(_data);
+                updated.DailyCount = 0;
+                updated.LastResetDate = DateTime.UtcNow;
+                SaveData(updated);
+                _data = updated;
             }
 
             return _data.DailyCount < _data.DailyLimit;
@@ -83,8 +88,10 @@ public class UsageMeteringService : IDisposable
     {
         lock (_lock)
         {
-            _data.DailyLimit = limit;
-            SaveData(_data);
+            var updated = CloneData(_data);
+            updated.DailyLimit = limit;
+            SaveData(updated);
+            _data = updated;
         }
     }
 
@@ -92,9 +99,11 @@ public class UsageMeteringService : IDisposable
     {
         lock (_lock)
         {
-            _data.DailyCount = 0;
-            _data.LastResetDate = DateTime.UtcNow;
-            SaveData(_data);
+            var updated = CloneData(_data);
+            updated.DailyCount = 0;
+            updated.LastResetDate = DateTime.UtcNow;
+            SaveData(updated);
+            _data = updated;
         }
     }
 
@@ -102,8 +111,9 @@ public class UsageMeteringService : IDisposable
     {
         lock (_lock)
         {
-            _data = new UsageData();
-            SaveData(_data);
+            var defaults = new UsageData();
+            SaveData(defaults);
+            _data = defaults;
         }
     }
 
@@ -135,6 +145,8 @@ public class UsageMeteringService : IDisposable
         catch (Exception ex)
         {
             _logger?.LogError(ex, "Failed to load usage data from {Path}", _usagePath);
+            if (_logger is null)
+                Trace.TraceError($"Failed to load usage data from '{_usagePath}': {ex}");
         }
         return new UsageData();
     }
@@ -149,6 +161,9 @@ public class UsageMeteringService : IDisposable
         catch (Exception ex)
         {
             _logger?.LogError(ex, "Failed to save usage data to {Path}", _usagePath);
+            if (_logger is null)
+                Trace.TraceError($"Failed to save usage data to '{_usagePath}': {ex}");
+            throw;
         }
     }
 
@@ -158,6 +173,17 @@ public class UsageMeteringService : IDisposable
         {
             _data = LoadData();
         }
+    }
+
+    private static UsageData CloneData(UsageData data)
+    {
+        return new UsageData
+        {
+            DailyCount = data.DailyCount,
+            DailyLimit = data.DailyLimit,
+            TotalCount = data.TotalCount,
+            LastResetDate = data.LastResetDate
+        };
     }
 
     public void Dispose()

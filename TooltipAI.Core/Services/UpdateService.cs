@@ -60,6 +60,10 @@ public class UpdateService
                 PublishedAt = release.PublishedAt
             };
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger?.LogError(ex, "Failed to check for updates");
@@ -110,6 +114,10 @@ public class UpdateService
 
             UpdateAvailable?.Invoke($"Updated to v{release.Version}");
             return true;
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {

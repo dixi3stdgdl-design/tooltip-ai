@@ -182,9 +182,7 @@ public sealed class GazeOrchestrator : IDisposable
             finally
             {
                 _isProcessing = false;
-
-                // Cleanup
-                Cleanup();
+                await CleanupAsync();
             }
         });
     }
@@ -293,10 +291,16 @@ public sealed class GazeOrchestrator : IDisposable
         return input;
     }
 
-    private void Cleanup()
+    private async Task CleanupAsync()
     {
-        // Stop audio capture
-        _ = _audioCapture.StopAsync();
+        try
+        {
+            await _audioCapture.StopAsync();
+        }
+        catch (Exception ex)
+        {
+            ErrorOccurred?.Invoke($"Audio cleanup failed: {ex.Message}");
+        }
 
         // Force GC to keep overhead minimal
         GC.Collect(0, GCCollectionMode.Optimized);

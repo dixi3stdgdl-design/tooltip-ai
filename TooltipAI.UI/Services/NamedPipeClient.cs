@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO.Pipes;
 using System.Text;
 using System.Text.Json;
@@ -29,8 +30,13 @@ public class NamedPipeClient : IDisposable
                 _readTask = ReadLoopAsync(_cts.Token);
                 return;
             }
-            catch (Exception)
+            catch (OperationCanceledException) when (_cts.Token.IsCancellationRequested)
             {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[UI] Pipe connection attempt failed: {ex}");
                 _pipe?.Dispose();
                 _pipe = null;
                 await Task.Delay(1000, _cts.Token);
@@ -90,8 +96,9 @@ public class NamedPipeClient : IDisposable
         catch (OperationCanceledException)
         {
         }
-        catch
+        catch (Exception ex)
         {
+            Debug.WriteLine($"[UI] Pipe read loop failed: {ex}");
             Disconnected?.Invoke();
         }
     }
@@ -99,7 +106,18 @@ public class NamedPipeClient : IDisposable
     public void Dispose()
     {
         _cts?.Cancel();
-        try { _readTask?.Wait(TimeSpan.FromSeconds(2)); } catch { }
+        try
+        {
+            if (_readTask is not null && !_readTask.Wait(TimeSpan.FromSeconds(2)))
+                Debug.WriteLine("[UI] Pipe read loop did not stop within two seconds.");
+        }
+        catch (AggregateException ex) when (ex.InnerExceptions.All(e => e is OperationCanceledException))
+        {
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[UI] Failed while stopping pipe read loop: {ex}");
+        }
         _pipe?.Dispose();
         _cts?.Dispose();
     }

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 
@@ -43,9 +44,11 @@ public class AppBlacklistService : IDisposable
             };
             _watcher.Changed += OnBlacklistChanged;
         }
-        catch
+        catch (Exception ex)
         {
-            // FileSystemWatcher not available in all contexts
+            _logger?.LogWarning(ex, "Blacklist file watcher is unavailable for {Path}", _blacklistPath);
+            if (_logger is null)
+                Trace.TraceWarning($"Blacklist file watcher is unavailable for '{_blacklistPath}': {ex}");
         }
     }
 
@@ -53,7 +56,7 @@ public class AppBlacklistService : IDisposable
     {
         lock (_lock)
         {
-            return _blacklist.Any(app => 
+            return _blacklist.Any(app =>
                 processName.Contains(app, StringComparison.OrdinalIgnoreCase));
         }
     }
@@ -64,8 +67,9 @@ public class AppBlacklistService : IDisposable
         {
             if (!_blacklist.Contains(processName))
             {
-                _blacklist.Add(processName);
-                SaveBlacklist(_blacklist);
+                var updated = new List<string>(_blacklist) { processName };
+                SaveBlacklist(updated);
+                _blacklist = updated;
             }
         }
         BlacklistChanged?.Invoke(Blacklist);
@@ -75,8 +79,10 @@ public class AppBlacklistService : IDisposable
     {
         lock (_lock)
         {
-            _blacklist.Remove(processName);
-            SaveBlacklist(_blacklist);
+            var updated = new List<string>(_blacklist);
+            updated.Remove(processName);
+            SaveBlacklist(updated);
+            _blacklist = updated;
         }
         BlacklistChanged?.Invoke(Blacklist);
     }
@@ -85,8 +91,9 @@ public class AppBlacklistService : IDisposable
     {
         lock (_lock)
         {
-            _blacklist = new List<string>(apps);
-            SaveBlacklist(_blacklist);
+            var updated = new List<string>(apps);
+            SaveBlacklist(updated);
+            _blacklist = updated;
         }
         BlacklistChanged?.Invoke(Blacklist);
     }
@@ -95,8 +102,9 @@ public class AppBlacklistService : IDisposable
     {
         lock (_lock)
         {
-            _blacklist.Clear();
-            SaveBlacklist(_blacklist);
+            var updated = new List<string>();
+            SaveBlacklist(updated);
+            _blacklist = updated;
         }
         BlacklistChanged?.Invoke(Blacklist);
     }
@@ -114,6 +122,8 @@ public class AppBlacklistService : IDisposable
         catch (Exception ex)
         {
             _logger?.LogError(ex, "Failed to load blacklist from {Path}", _blacklistPath);
+            if (_logger is null)
+                Trace.TraceError($"Failed to load blacklist from '{_blacklistPath}': {ex}");
         }
         return new List<string>();
     }
@@ -128,6 +138,9 @@ public class AppBlacklistService : IDisposable
         catch (Exception ex)
         {
             _logger?.LogError(ex, "Failed to save blacklist to {Path}", _blacklistPath);
+            if (_logger is null)
+                Trace.TraceError($"Failed to save blacklist to '{_blacklistPath}': {ex}");
+            throw;
         }
     }
 

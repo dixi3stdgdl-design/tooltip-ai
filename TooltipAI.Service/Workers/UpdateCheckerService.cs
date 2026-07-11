@@ -30,6 +30,10 @@ public class UpdateCheckerService : BackgroundService
                     Console.WriteLine($"[Update] Release notes: {release.ReleaseNotes[..Math.Min(200, release.ReleaseNotes.Length)]}...");
                 }
             }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
             catch (Exception ex)
             {
                 Console.WriteLine($"[Update] Check failed: {ex.Message}");

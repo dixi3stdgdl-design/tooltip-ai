@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 
@@ -43,9 +44,11 @@ public class ConsentManager : IDisposable
             };
             _watcher.Changed += OnConsentChanged;
         }
-        catch
+        catch (Exception ex)
         {
-            // FileSystemWatcher not available in all contexts
+            _logger?.LogWarning(ex, "Consent file watcher is unavailable for {Path}", _consentPath);
+            if (_logger is null)
+                Trace.TraceWarning($"Consent file watcher is unavailable for '{_consentPath}': {ex}");
         }
     }
 
@@ -54,7 +57,7 @@ public class ConsentManager : IDisposable
     public bool IsLocalOnlyMode => _state.LocalOnlyMode;
     public bool IsAppBlacklisted(string processName)
     {
-        return _state.AppBlacklist.Any(app => 
+        return _state.AppBlacklist.Any(app =>
             processName.Contains(app, StringComparison.OrdinalIgnoreCase));
     }
 
@@ -62,8 +65,7 @@ public class ConsentManager : IDisposable
     {
         lock (_lock)
         {
-            _state.AIEnrichmentEnabled = enabled;
-            SaveState(_state);
+            UpdateState(state => state.AIEnrichmentEnabled = enabled);
         }
         ConsentChanged?.Invoke(_state);
     }
@@ -72,8 +74,7 @@ public class ConsentManager : IDisposable
     {
         lock (_lock)
         {
-            _state.TelemetryEnabled = enabled;
-            SaveState(_state);
+            UpdateState(state => state.TelemetryEnabled = enabled);
         }
         ConsentChanged?.Invoke(_state);
     }
@@ -82,8 +83,7 @@ public class ConsentManager : IDisposable
     {
         lock (_lock)
         {
-            _state.LocalOnlyMode = enabled;
-            SaveState(_state);
+            UpdateState(state => state.LocalOnlyMode = enabled);
         }
         ConsentChanged?.Invoke(_state);
     }
@@ -92,11 +92,10 @@ public class ConsentManager : IDisposable
     {
         lock (_lock)
         {
-            if (!_state.AppBlacklist.Contains(processName))
-            {
-                _state.AppBlacklist.Add(processName);
-                SaveState(_state);
-            }
+            if (_state.AppBlacklist.Contains(processName))
+                return;
+
+            UpdateState(state => state.AppBlacklist.Add(processName));
         }
         ConsentChanged?.Invoke(_state);
     }
@@ -105,8 +104,7 @@ public class ConsentManager : IDisposable
     {
         lock (_lock)
         {
-            _state.AppBlacklist.Remove(processName);
-            SaveState(_state);
+            UpdateState(state => state.AppBlacklist.Remove(processName));
         }
         ConsentChanged?.Invoke(_state);
     }
@@ -115,8 +113,7 @@ public class ConsentManager : IDisposable
     {
         lock (_lock)
         {
-            _state.AppBlacklist = apps;
-            SaveState(_state);
+            UpdateState(state => state.AppBlacklist = new List<string>(apps));
         }
         ConsentChanged?.Invoke(_state);
     }
@@ -125,10 +122,26 @@ public class ConsentManager : IDisposable
     {
         lock (_lock)
         {
-            _state = new ConsentState();
-            SaveState(_state);
+            var defaults = new ConsentState();
+            SaveState(defaults);
+            _state = defaults;
         }
         ConsentChanged?.Invoke(_state);
+    }
+
+    private void UpdateState(Action<ConsentState> update)
+    {
+        var updated = new ConsentState
+        {
+            AIEnrichmentEnabled = _state.AIEnrichmentEnabled,
+            TelemetryEnabled = _state.TelemetryEnabled,
+            LocalOnlyMode = _state.LocalOnlyMode,
+            AppBlacklist = new List<string>(_state.AppBlacklist),
+            LastUpdated = DateTime.UtcNow
+        };
+        update(updated);
+        SaveState(updated);
+        _state = updated;
     }
 
     private ConsentState LoadState()
@@ -144,6 +157,8 @@ public class ConsentManager : IDisposable
         catch (Exception ex)
         {
             _logger?.LogError(ex, "Failed to load consent state from {Path}", _consentPath);
+            if (_logger is null)
+                Trace.TraceError($"Failed to load consent state from '{_consentPath}': {ex}");
         }
         return new ConsentState();
     }
@@ -158,6 +173,9 @@ public class ConsentManager : IDisposable
         catch (Exception ex)
         {
             _logger?.LogError(ex, "Failed to save consent state to {Path}", _consentPath);
+            if (_logger is null)
+                Trace.TraceError($"Failed to save consent state to '{_consentPath}': {ex}");
+            throw;
         }
     }
 

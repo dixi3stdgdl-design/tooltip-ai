@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Text.Json;
 
 namespace TooltipAI.Core.Services;
@@ -85,9 +86,15 @@ public class LoggingService : IDisposable
                 var json = JsonSerializer.Serialize(entries, new JsonSerializerOptions { WriteIndented = true });
                 File.AppendAllText(filePath, json + Environment.NewLine);
             }
-            catch
+            catch (Exception ex)
             {
-                // Silently fail on logging errors
+                foreach (var entry in entries)
+                    _logQueue.Enqueue(entry);
+
+                while (_logQueue.Count > MaxLogEntries)
+                    _logQueue.TryDequeue(out _);
+
+                Trace.TraceError($"Failed to flush TooltipAI logs to '{filePath}': {ex}");
             }
         }
     }

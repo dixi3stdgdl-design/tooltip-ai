@@ -13,13 +13,13 @@ public sealed partial class LicenseWindow : Window
     public LicenseWindow()
     {
         InitializeComponent();
-        
+
         // Set window size (WinUI 3 doesn't support Width/Height in XAML)
         this.AppWindow.Resize(new Windows.Graphics.SizeInt32 { Width = 450, Height = 350 });
-        
+
         _licenseService = new LicenseService();
         _usageService = new UsageMeteringService();
-        
+
         LoadLicenseStatus();
         LoadUsageStats();
     }
@@ -32,7 +32,7 @@ public sealed partial class LicenseWindow : Window
             TxtStatus.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Green);
             TxtTier.Text = "Pro";
             TxtExpiry.Text = _licenseService.GetLicenseStatusMessage();
-            
+
             BtnActivate.IsEnabled = false;
             BtnDeactivate.IsEnabled = true;
             GrpUsage.Visibility = Visibility.Collapsed;
@@ -43,7 +43,7 @@ public sealed partial class LicenseWindow : Window
             TxtStatus.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Orange);
             TxtTier.Text = "Free (Trial)";
             TxtExpiry.Text = $"{_licenseService.GetRemainingTrialDays()} days remaining";
-            
+
             BtnActivate.IsEnabled = true;
             BtnDeactivate.IsEnabled = false;
         }
@@ -53,7 +53,7 @@ public sealed partial class LicenseWindow : Window
             TxtStatus.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray);
             TxtTier.Text = "Free";
             TxtExpiry.Text = "Trial expired";
-            
+
             BtnActivate.IsEnabled = true;
             BtnDeactivate.IsEnabled = false;
         }
@@ -64,7 +64,7 @@ public sealed partial class LicenseWindow : Window
         var stats = _usageService.GetStats();
         TxtUsage.Text = $"{stats.DailyCount}/{stats.DailyLimit} tooltips";
         TxtRemaining.Text = $"{stats.RemainingToday} tooltips";
-        
+
         if (stats.RemainingToday == 0)
         {
             TxtRemaining.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Red);
@@ -82,7 +82,7 @@ public sealed partial class LicenseWindow : Window
     private async void BtnActivate_Click(object sender, RoutedEventArgs e)
     {
         var licenseKey = TxtLicenseKey.Text.Trim();
-        
+
         if (string.IsNullOrEmpty(licenseKey))
         {
             ShowMessage("Please enter a license key.", false);
@@ -92,7 +92,7 @@ public sealed partial class LicenseWindow : Window
         try
         {
             var success = _licenseService.ActivateLicense(licenseKey);
-            
+
             if (success)
             {
                 ShowMessage("License activated successfully!", true);
@@ -123,13 +123,20 @@ public sealed partial class LicenseWindow : Window
         };
 
         var result = await dialog.ShowAsync();
-        
+
         if (result == ContentDialogResult.Primary)
         {
-            _licenseService.StartTrial();
-            ShowMessage("License deactivated.", true);
-            LoadLicenseStatus();
-            LoadUsageStats();
+            try
+            {
+                _licenseService.StartTrial();
+                ShowMessage("License deactivated.", true);
+                LoadLicenseStatus();
+                LoadUsageStats();
+            }
+            catch (Exception ex)
+            {
+                ShowMessage($"Deactivation failed: {ex.Message}", false);
+            }
         }
     }
 
