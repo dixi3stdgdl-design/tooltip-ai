@@ -12,13 +12,13 @@ public sealed partial class PrivacySettingsWindow : Window
     public PrivacySettingsWindow()
     {
         InitializeComponent();
-        
+
         // Set window size (WinUI 3 doesn't support Width/Height in XAML)
         this.AppWindow.Resize(new Windows.Graphics.SizeInt32 { Width = 500, Height = 450 });
-        
+
         _consentManager = new ConsentManager();
         _blacklistService = new AppBlacklistService();
-        
+
         LoadSettings();
     }
 
@@ -28,7 +28,7 @@ public sealed partial class PrivacySettingsWindow : Window
         ChkAIEnrichment.IsChecked = _consentManager.State.AIEnrichmentEnabled;
         ChkTelemetry.IsChecked = _consentManager.State.TelemetryEnabled;
         ChkLocalOnly.IsChecked = _consentManager.State.LocalOnlyMode;
-        
+
         LstBlacklist.ItemsSource = _blacklistService.Blacklist;
     }
 
@@ -104,7 +104,7 @@ public sealed partial class PrivacySettingsWindow : Window
         };
 
         var result = await confirmDialog.ShowAsync();
-        
+
         if (result == ContentDialogResult.Primary)
         {
             try

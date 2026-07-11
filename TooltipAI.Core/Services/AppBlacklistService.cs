@@ -56,7 +56,7 @@ public class AppBlacklistService : IDisposable
     {
         lock (_lock)
         {
-            return _blacklist.Any(app => 
+            return _blacklist.Any(app =>
                 processName.Contains(app, StringComparison.OrdinalIgnoreCase));
         }
     }

@@ -28,7 +28,7 @@ public sealed class UserSession : IDisposable
         _sessionPath = sessionPath ?? Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "TooltipAI", "session.json");
-        
+
         _currentSession = LoadSession();
     }
 
@@ -41,7 +41,7 @@ public sealed class UserSession : IDisposable
             await Task.Delay(100);
 
             var hashedPassword = HashPassword(password);
-            
+
             // Create session
             var session = new UserSessionData
             {
@@ -111,7 +111,7 @@ public sealed class UserSession : IDisposable
         _currentSession = null;
         if (File.Exists(_sessionPath))
             File.Delete(_sessionPath);
-        
+
         _logger.LogInformation("User logged out");
     }
 

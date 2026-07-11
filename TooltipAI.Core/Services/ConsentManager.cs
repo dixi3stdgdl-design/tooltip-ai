@@ -57,7 +57,7 @@ public class ConsentManager : IDisposable
     public bool IsLocalOnlyMode => _state.LocalOnlyMode;
     public bool IsAppBlacklisted(string processName)
     {
-        return _state.AppBlacklist.Any(app => 
+        return _state.AppBlacklist.Any(app =>
             processName.Contains(app, StringComparison.OrdinalIgnoreCase));
     }
 

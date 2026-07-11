@@ -91,6 +91,9 @@ public class LoggingService : IDisposable
                 foreach (var entry in entries)
                     _logQueue.Enqueue(entry);
 
+                while (_logQueue.Count > MaxLogEntries)
+                    _logQueue.TryDequeue(out _);
+
                 Trace.TraceError($"Failed to flush TooltipAI logs to '{filePath}': {ex}");
             }
         }
