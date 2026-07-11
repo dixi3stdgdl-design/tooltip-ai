@@ -1,4 +1,5 @@
 using System.Reflection;
+using TooltipAI.Core.Common;
 using TooltipAI.Core.Interfaces;
 
 namespace TooltipAI.Core.Plugins;
@@ -15,10 +16,7 @@ public class PluginLoader
 
     public PluginLoader(string? pluginsPath = null)
     {
-        _pluginsPath = pluginsPath
-            ?? Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "TooltipAI", "plugins");
+        _pluginsPath = pluginsPath ?? AppDataPaths.Combine("plugins");
     }
 
     public void LoadPlugins()

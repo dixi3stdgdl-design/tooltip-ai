@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using TooltipAI.Core.Common;
 
 namespace TooltipAI.Core.Auth;
 
@@ -25,9 +25,7 @@ public sealed class UserSession : IDisposable
     public UserSession(ILogger<UserSession> logger, string? sessionPath = null)
     {
         _logger = logger;
-        _sessionPath = sessionPath ?? Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "TooltipAI", "session.json");
+        _sessionPath = sessionPath ?? AppDataPaths.Combine("session.json");
         
         _currentSession = LoadSession();
     }
@@ -125,34 +123,12 @@ public sealed class UserSession : IDisposable
     }
 
     private UserSessionData? LoadSession()
-    {
-        try
-        {
-            if (File.Exists(_sessionPath))
-            {
-                var json = File.ReadAllText(_sessionPath);
-                return JsonSerializer.Deserialize<UserSessionData>(json);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to load session");
-        }
-        return null;
-    }
+        => JsonFile.Load<UserSessionData?>(_sessionPath, () => null, _logger, description: "session");
 
     private void SaveSession(UserSessionData session)
     {
-        try
-        {
-            var json = JsonSerializer.Serialize(session, new JsonSerializerOptions { WriteIndented = true });
-            Directory.CreateDirectory(Path.GetDirectoryName(_sessionPath)!);
-            File.WriteAllText(_sessionPath, json);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to save session");
-        }
+        Directory.CreateDirectory(Path.GetDirectoryName(_sessionPath)!);
+        JsonFile.Save(_sessionPath, session, _logger, description: "session");
     }
 
     private string HashPassword(string password)

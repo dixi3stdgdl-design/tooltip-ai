@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using TooltipAI.Core.Common;
 
 namespace TooltipAI.Core.AI;
 
@@ -23,9 +24,7 @@ public sealed class GeminiNanoProvider : IAIProvider
     public GeminiNanoProvider(ILogger<GeminiNanoProvider> logger, string? modelPath = null)
     {
         _logger = logger;
-        _modelPath = modelPath ?? 
-                     Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), 
-                     "TooltipAI", "models", "gemini-nano-1b");
+        _modelPath = modelPath ?? AppDataPaths.Combine("models", "gemini-nano-1b");
         
         _isAvailable = CheckModelAvailability();
     }

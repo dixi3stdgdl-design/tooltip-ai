@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using TooltipAI.Core.Common;
 
 namespace TooltipAI.Core.Analytics;
 
@@ -82,9 +83,7 @@ public sealed class EventTracker : IDisposable
 
     private string GetOrCreateDistinctId()
     {
-        var idPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "TooltipAI", "analytics_id.txt");
+        var idPath = AppDataPaths.Combine("analytics_id.txt");
 
         if (File.Exists(idPath))
             return File.ReadAllText(idPath).Trim();

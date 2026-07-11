@@ -1,5 +1,5 @@
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using TooltipAI.Core.Common;
 
 namespace TooltipAI.Core.Services;
 
@@ -18,9 +18,7 @@ public class UsageMeteringService : IDisposable
     public UsageMeteringService(string? customPath = null, ILogger? logger = null)
     {
         _logger = logger;
-        var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        var appFolder = Path.Combine(appDataPath, "TooltipAI");
-        Directory.CreateDirectory(appFolder);
+        var appFolder = AppDataPaths.EnsureRoot();
 
         _usagePath = customPath ?? Path.Combine(appFolder, "usage.json");
         _data = LoadData();
@@ -31,19 +29,7 @@ public class UsageMeteringService : IDisposable
             ResetDailyCount();
         }
 
-        try
-        {
-            _watcher = new FileSystemWatcher(Path.GetDirectoryName(_usagePath)!, Path.GetFileName(_usagePath))
-            {
-                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size,
-                EnableRaisingEvents = true
-            };
-            _watcher.Changed += OnUsageChanged;
-        }
-        catch
-        {
-            // FileSystemWatcher not available in all contexts
-        }
+        _watcher = FileChangeWatcher.TryWatch(_usagePath, OnUsageChanged);
     }
 
     public void IncrementUsage()
@@ -123,34 +109,10 @@ public class UsageMeteringService : IDisposable
     }
 
     private UsageData LoadData()
-    {
-        try
-        {
-            if (File.Exists(_usagePath))
-            {
-                var json = File.ReadAllText(_usagePath);
-                return JsonSerializer.Deserialize<UsageData>(json) ?? new UsageData();
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger?.LogError(ex, "Failed to load usage data from {Path}", _usagePath);
-        }
-        return new UsageData();
-    }
+        => JsonFile.Load(_usagePath, () => new UsageData(), _logger, description: "usage data");
 
     private void SaveData(UsageData data)
-    {
-        try
-        {
-            var json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(_usagePath, json);
-        }
-        catch (Exception ex)
-        {
-            _logger?.LogError(ex, "Failed to save usage data to {Path}", _usagePath);
-        }
-    }
+        => JsonFile.Save(_usagePath, data, _logger, description: "usage data");
 
     private void OnUsageChanged(object sender, FileSystemEventArgs e)
     {

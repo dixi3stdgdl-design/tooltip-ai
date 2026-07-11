@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Logging;
+using TooltipAI.Core.Common;
 
 namespace TooltipAI.Core.Services;
 
@@ -28,9 +29,7 @@ public class LicenseService : IDisposable
     public LicenseService(string? settingsPath = null, ILogger? logger = null)
     {
         _logger = logger;
-        var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        var appFolder = Path.Combine(appDataPath, "TooltipAI");
-        Directory.CreateDirectory(appFolder);
+        var appFolder = AppDataPaths.EnsureRoot();
 
         _settingsPath = settingsPath ?? Path.Combine(appFolder, "license.dat");
         LoadLicense();
