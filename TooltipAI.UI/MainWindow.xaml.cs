@@ -114,7 +114,9 @@ public partial class MainWindow : Window
     {
         try
         {
+            System.Diagnostics.Debug.WriteLine("[UI] Connecting to pipe...");
             await _pipeClient.ConnectAsync(System.Threading.CancellationToken.None);
+            System.Diagnostics.Debug.WriteLine("[UI] Connected to pipe!");
         }
         catch (Exception ex)
         {
@@ -126,6 +128,7 @@ public partial class MainWindow : Window
     {
         DispatcherQueue.TryEnqueue(() =>
         {
+            System.Diagnostics.Debug.WriteLine($"[UI] Data received: {data.Element?.Name} | {data.Element?.ControlType} | {data.SoftwareCategory}");
             _hideTimer.Stop();
             _isTooltipVisible = true;
             TooltipOverlay.UpdateFromData(data);

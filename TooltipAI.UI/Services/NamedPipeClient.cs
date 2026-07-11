@@ -26,11 +26,13 @@ public class NamedPipeClient : IDisposable
             {
                 _pipe = new NamedPipeClientStream(".", PipeName, PipeDirection.In);
                 await _pipe.ConnectAsync(5000, _cts.Token);
+                System.Diagnostics.Debug.WriteLine($"[PIPE] Connected to {PipeName}");
                 _readTask = ReadLoopAsync(_cts.Token);
                 return;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[PIPE] Connection failed: {ex.Message}");
                 _pipe?.Dispose();
                 _pipe = null;
                 await Task.Delay(1000, _cts.Token);
