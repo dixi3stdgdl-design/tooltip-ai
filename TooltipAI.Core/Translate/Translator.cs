@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text;
 using Microsoft.Extensions.Logging;
+using TooltipAI.Core.Common;
 
 namespace TooltipAI.Core.Translate;
 
@@ -207,9 +208,7 @@ public sealed class Translator
     {
         try
         {
-            var modelPath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "TooltipAI", "models", "gemini-nano");
+            var modelPath = AppDataPaths.Combine("models", "gemini-nano");
             return Directory.Exists(modelPath) || File.Exists(Path.Combine(modelPath, "model.bin"));
         }
         catch

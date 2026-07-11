@@ -1,5 +1,5 @@
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using TooltipAI.Core.Common;
 
 namespace TooltipAI.Core.Services;
 
@@ -27,26 +27,12 @@ public class AppBlacklistService : IDisposable
     public AppBlacklistService(string? customPath = null, ILogger? logger = null)
     {
         _logger = logger;
-        var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        var appFolder = Path.Combine(appDataPath, "TooltipAI");
-        Directory.CreateDirectory(appFolder);
+        var appFolder = AppDataPaths.EnsureRoot();
 
         _blacklistPath = customPath ?? Path.Combine(appFolder, "blacklist.json");
         _blacklist = LoadBlacklist();
 
-        try
-        {
-            _watcher = new FileSystemWatcher(Path.GetDirectoryName(_blacklistPath)!, Path.GetFileName(_blacklistPath))
-            {
-                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size,
-                EnableRaisingEvents = true
-            };
-            _watcher.Changed += OnBlacklistChanged;
-        }
-        catch
-        {
-            // FileSystemWatcher not available in all contexts
-        }
+        _watcher = FileChangeWatcher.TryWatch(_blacklistPath, OnBlacklistChanged);
     }
 
     public bool IsBlacklisted(string processName)
@@ -102,34 +88,10 @@ public class AppBlacklistService : IDisposable
     }
 
     private List<string> LoadBlacklist()
-    {
-        try
-        {
-            if (File.Exists(_blacklistPath))
-            {
-                var json = File.ReadAllText(_blacklistPath);
-                return JsonSerializer.Deserialize<List<string>>(json) ?? new List<string>();
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger?.LogError(ex, "Failed to load blacklist from {Path}", _blacklistPath);
-        }
-        return new List<string>();
-    }
+        => JsonFile.Load(_blacklistPath, () => new List<string>(), _logger, description: "blacklist");
 
     private void SaveBlacklist(List<string> blacklist)
-    {
-        try
-        {
-            var json = JsonSerializer.Serialize(blacklist, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(_blacklistPath, json);
-        }
-        catch (Exception ex)
-        {
-            _logger?.LogError(ex, "Failed to save blacklist to {Path}", _blacklistPath);
-        }
-    }
+        => JsonFile.Save(_blacklistPath, blacklist, _logger, description: "blacklist");
 
     private void OnBlacklistChanged(object sender, FileSystemEventArgs e)
     {

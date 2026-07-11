@@ -1,6 +1,7 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
+using TooltipAI.Core.Common;
 using TooltipAI.Core.Models;
 
 namespace TooltipAI.Core.Services;
@@ -25,9 +26,7 @@ public class ResponseCacheService : IDisposable
     public ResponseCacheService(string? customPath = null, ILogger? logger = null)
     {
         _logger = logger;
-        var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        var appFolder = Path.Combine(appDataPath, "TooltipAI");
-        Directory.CreateDirectory(appFolder);
+        var appFolder = AppDataPaths.EnsureRoot();
 
         _dbPath = customPath ?? Path.Combine(appFolder, "cache.db");
         InitializeDatabase();

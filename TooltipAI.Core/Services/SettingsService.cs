@@ -1,12 +1,12 @@
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using TooltipAI.Core.Common;
 
 namespace TooltipAI.Core.Services;
 
 public class SettingsService : IDisposable
 {
     private readonly string _settingsPath;
-    private readonly FileSystemWatcher _watcher;
+    private readonly FileSystemWatcher? _watcher;
     private readonly object _lock = new();
     private AppSettings _settings;
     private DateTime _lastLoad = DateTime.MinValue;
@@ -17,19 +17,12 @@ public class SettingsService : IDisposable
     public SettingsService(string? customPath = null, ILogger? logger = null)
     {
         _logger = logger;
-        var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        var appFolder = Path.Combine(appDataPath, "TooltipAI");
-        Directory.CreateDirectory(appFolder);
+        var appFolder = AppDataPaths.EnsureRoot();
 
         _settingsPath = customPath ?? Path.Combine(appFolder, "settings.json");
         _settings = LoadSettings();
 
-        _watcher = new FileSystemWatcher(Path.GetDirectoryName(_settingsPath)!, Path.GetFileName(_settingsPath))
-        {
-            NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size,
-            EnableRaisingEvents = true
-        };
-        _watcher.Changed += OnSettingsChanged;
+        _watcher = FileChangeWatcher.TryWatch(_settingsPath, OnSettingsChanged);
     }
 
     public AppSettings GetSettings()
@@ -59,34 +52,12 @@ public class SettingsService : IDisposable
     }
 
     private AppSettings LoadSettings()
-    {
-        try
-        {
-            if (File.Exists(_settingsPath))
-            {
-                var json = File.ReadAllText(_settingsPath);
-                return JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger?.LogError(ex, "Failed to load settings from {Path}", _settingsPath);
-        }
-        return new AppSettings();
-    }
+        => JsonFile.Load(_settingsPath, () => new AppSettings(), _logger, description: "settings");
 
     private void SaveSettings(AppSettings settings)
     {
-        try
-        {
-            var json = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(_settingsPath, json);
+        if (JsonFile.Save(_settingsPath, settings, _logger, description: "settings"))
             _lastLoad = DateTime.UtcNow;
-        }
-        catch (Exception ex)
-        {
-            _logger?.LogError(ex, "Failed to save settings to {Path}", _settingsPath);
-        }
     }
 
     private void OnSettingsChanged(object sender, FileSystemEventArgs e)

@@ -1,5 +1,5 @@
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using TooltipAI.Core.Common;
 
 namespace TooltipAI.Core.Services;
 
@@ -27,26 +27,12 @@ public class ConsentManager : IDisposable
     public ConsentManager(string? customPath = null, ILogger? logger = null)
     {
         _logger = logger;
-        var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        var appFolder = Path.Combine(appDataPath, "TooltipAI");
-        Directory.CreateDirectory(appFolder);
+        var appFolder = AppDataPaths.EnsureRoot();
 
         _consentPath = customPath ?? Path.Combine(appFolder, "consent.json");
         _state = LoadState();
 
-        try
-        {
-            _watcher = new FileSystemWatcher(Path.GetDirectoryName(_consentPath)!, Path.GetFileName(_consentPath))
-            {
-                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size,
-                EnableRaisingEvents = true
-            };
-            _watcher.Changed += OnConsentChanged;
-        }
-        catch
-        {
-            // FileSystemWatcher not available in all contexts
-        }
+        _watcher = FileChangeWatcher.TryWatch(_consentPath, OnConsentChanged);
     }
 
     public bool IsAIEnrichmentEnabled => _state.AIEnrichmentEnabled && !_state.LocalOnlyMode;
@@ -132,34 +118,10 @@ public class ConsentManager : IDisposable
     }
 
     private ConsentState LoadState()
-    {
-        try
-        {
-            if (File.Exists(_consentPath))
-            {
-                var json = File.ReadAllText(_consentPath);
-                return JsonSerializer.Deserialize<ConsentState>(json) ?? new ConsentState();
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger?.LogError(ex, "Failed to load consent state from {Path}", _consentPath);
-        }
-        return new ConsentState();
-    }
+        => JsonFile.Load(_consentPath, () => new ConsentState(), _logger, description: "consent state");
 
     private void SaveState(ConsentState state)
-    {
-        try
-        {
-            var json = JsonSerializer.Serialize(state, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(_consentPath, json);
-        }
-        catch (Exception ex)
-        {
-            _logger?.LogError(ex, "Failed to save consent state to {Path}", _consentPath);
-        }
-    }
+        => JsonFile.Save(_consentPath, state, _logger, description: "consent state");
 
     private void OnConsentChanged(object sender, FileSystemEventArgs e)
     {

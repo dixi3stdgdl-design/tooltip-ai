@@ -1,4 +1,5 @@
 using System.Text.Json;
+using TooltipAI.Core.Common;
 using TooltipAI.Core.Models;
 
 namespace TooltipAI.Core.Rules;
@@ -17,9 +18,7 @@ public class AppSpecificRules : IDisposable
 
     public AppSpecificRules(string? customPath = null)
     {
-        var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        var appFolder = Path.Combine(appDataPath, "TooltipAI");
-        Directory.CreateDirectory(appFolder);
+        var appFolder = AppDataPaths.EnsureRoot();
 
         _rulesPath = customPath ?? Path.Combine(appFolder, "rules.json");
 
@@ -30,20 +29,7 @@ public class AppSpecificRules : IDisposable
 
         _rules = LoadRules();
 
-        try
-        {
-            var watcher = new FileSystemWatcher(Path.GetDirectoryName(_rulesPath)!, Path.GetFileName(_rulesPath))
-            {
-                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size,
-                EnableRaisingEvents = true
-            };
-            watcher.Changed += OnRulesChanged;
-            _watcher = watcher;
-        }
-        catch
-        {
-            // FileSystemWatcher not available in all contexts
-        }
+        _watcher = FileChangeWatcher.TryWatch(_rulesPath, OnRulesChanged);
     }
 
     public string? GetContextForElement(ElementInfo element)
@@ -210,7 +196,7 @@ public class AppSpecificRules : IDisposable
                     Version = "1.0.0"
                 }
             };
-            var json = JsonSerializer.Serialize(defaultRules, new JsonSerializerOptions { WriteIndented = true });
+            var json = JsonSerializer.Serialize(defaultRules, JsonFile.IndentedOptions);
             File.WriteAllText(_rulesPath, json);
         }
     }

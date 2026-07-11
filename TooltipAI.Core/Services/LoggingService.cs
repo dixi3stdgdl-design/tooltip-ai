@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
+using TooltipAI.Core.Common;
 
 namespace TooltipAI.Core.Services;
 
@@ -14,8 +15,7 @@ public class LoggingService : IDisposable
 
     public LoggingService(string? customPath = null)
     {
-        var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        _logDirectory = customPath ?? Path.Combine(appDataPath, "TooltipAI", "Logs");
+        _logDirectory = customPath ?? AppDataPaths.Combine("Logs");
         Directory.CreateDirectory(_logDirectory);
 
         _flushTimer = new Timer(FlushLogs, null, TimeSpan.FromMilliseconds(FlushIntervalMs), TimeSpan.FromMilliseconds(FlushIntervalMs));
@@ -82,7 +82,7 @@ public class LoggingService : IDisposable
 
             try
             {
-                var json = JsonSerializer.Serialize(entries, new JsonSerializerOptions { WriteIndented = true });
+                var json = JsonSerializer.Serialize(entries, JsonFile.IndentedOptions);
                 File.AppendAllText(filePath, json + Environment.NewLine);
             }
             catch
