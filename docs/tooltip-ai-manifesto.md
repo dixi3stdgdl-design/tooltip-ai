@@ -68,7 +68,7 @@ El pipeline de Tooltip AI transforma un movimiento del mouse en un tooltip enriq
 
 **Serialización y Transporte (0.5ms):** TooltipData se serializa a JSON UTF-8 (247 bytes promedio) y se envía por Named Pipe unidireccional rígido sin handshake (TooltipAI_Pipe).
 
-**Render GDI (0.8ms):** UI Win32 ejecuta WM_PAINT directo sobre GDI para renderizar in-place junto al cursor. Latencia total: 8.3ms promedio (P95: 9.7ms).
+**Render GDI:** UI Win32 ejecuta WM_PAINT directo sobre GDI para renderizar in-place junto al cursor. Latencia end-to-end pendiente de medicion en Windows.
 
 ### 2.2 Pipeline macOS
 
@@ -681,7 +681,7 @@ Tooltip AI se ejecuta nativamente en macOS usando P/Invoke directo a los framewo
 | **TooltipAI.Tests** | 11 | 108 | ✓ 100% passing |
 | **GitHub Actions** | 1 | — | ✓ CI/CD blindado |
 | **Documentación** | 15 | — | ✓ Manifesto + deliverables |
-| **TOTAL** | **77** | **108** | **Production-ready** |
+| **TOTAL** | **77** | **207** | **En desarrollo** |
 
 ### 8.2 Tests por Categoría
 

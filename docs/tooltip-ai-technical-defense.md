@@ -157,51 +157,33 @@ tooltipai-enterprise/
 
 ---
 
-## OBJECIÓN 3: Latencia Real — "8.3ms es demasiado optimista"
+## OBJECIÓN 3: Latencia Real — "¿Cuál es la latencia real?"
 
 ### Lo que van a decir:
 
-> "Dices que el pipeline completo toma 8.3ms. Eso incluye hook, UIA query, procesamiento contextual, serialización, IPC, y render. ¿Dónde están los benchmarks? ¿Has medido esto en hardware real?"
+> "¿Cuánto tiempo toma el pipeline completo? ¿Has medido esto en hardware real?"
 
 ### Tu respuesta:
 
-**Los 8.3ms son el promedio de 10,000 muestras en hardware real.** El P95 es 9.7ms y el P99 es 10.2ms. Estos números vienen de nuestro Whitepaper de Eficiencia de Recursos, que incluye logs certificados con timestamps de cada fase del pipeline.
+**La latencia end-to-end esta pendiente de medicion en Windows.** Los benchmarks existentes miden logica pura en RAM (enriquecimiento, clasificacion, serializacion JSON) — NO incluyen hook, UIA, IPC, ni render. El pipeline real tiene estas fases:
 
-### Desglose verificable:
+| Fase | Metodo |
+|------|--------|
+| **Hook callback** | WH_MOUSE_LL (kernel-level) |
+| **Throttle check** | CPU-bound, 50ms activo / 200ms idle |
+| **UIA query** | IUIAutomation.ElementFromPoint via COM Interop |
+| **Enrichment** | Reglas deterministicas (local, sin network) |
+| **Serialize** | System.Text.Json |
+| **IPC transfer** | Named Pipe unidireccional |
+| **Render** | WinUI 3 overlay (click-through) |
 
-| Fase | Tiempo Promedio | Hardware | Método de Medición |
-|------|-----------------|----------|-------------------|
-| **Hook callback** | 0.8ms | Cualquier CPU | ETW trace en kernel |
-| **Throttle check** | 0.2ms | CPU-bound | Stopwatch en user-mode |
-| **UIA query** | 3.2ms | CPU-bound | IUIAutomation.GetFocusedElement |
-| **Context lookup** | 1.1ms | RAM (12MB LRU) | Cache hit rate >80% |
-| **Enrichment** | 1.8ms | CPU-bound | Reglas determinísticas |
-| **Serialize** | 0.3ms | CPU-bound | System.Text.Json |
-| **Pipe write** | 0.5ms | IPC | NamedPipeServerStream |
-| **IPC transfer** | 0.4ms | Kernel | Named Pipe unidireccional |
-| **Render** | 0.8ms | GDI | WM_PAINT + TextOut |
-| **TOTAL** | **8.3ms** | | |
+**Lo que sabemos:**
+- El enricher puro toma <0.1ms (benchmark verificado)
+- La clasificacion de software toma <0.05ms (benchmark verificado)
+- La serializacion JSON toma <0.05ms (benchmark verificado)
+- La latencia total end-to-end depende de IUIAutomation (variable por app)
 
-### Logs certificados (ejemplo real):
-
-```
-[2026-07-04T10:23:15.847Z] PIPELINE_START event_id=8f3a2b1c
-[2026-07-04T10:23:15.848Z] HOOK_CALLBACK duration_ms=0.82
-[2026-07-04T10:23:15.848Z] THROTTLE_CHECK pass=true
-[2026-07-04T10:23:15.851Z] UIA_QUERY element="Button" duration_ms=3.18
-[2026-07-04T10:23:15.852Z] CONTEXT_LOOKUP cache_hit=true duration_ms=1.12
-[2026-07-04T10:23:15.854Z] ENRICHMENT applied=true duration_ms=1.83
-[2026-07-04T10:23:15.854Z] SERIALIZE bytes=247 duration_ms=0.31
-[2026-07-04T10:23:15.855Z] PIPE_WRITE success=true duration_ms=0.48
-[2026-07-04T10:23:15.856Z] IPC_TRANSFER delivered=true duration_ms=0.42
-[2026-07-04T10:23:15.856Z] PIPELINE_END total_ms=8.34 status=SUCCESS
-```
-
-### Comparativa con competencia:
-
-| Solución | Latencia | Método |
-|----------|----------|--------|
-| **Tooltip AI** | **8.3ms** | Local, zero network |
+**Pendiente:** instrumentar el pipeline real con Stopwatch en Windows y publicar los numeros verificados.
 | Microsoft Copilot | 200-2000ms | Azure OpenAI |
 | Google Lens | 500-3000ms | Cloud Vision API |
 | GitHub Copilot | 100-500ms | Azure inference |
@@ -333,7 +315,7 @@ Para Google: Esto es una ventaja — les garantiza que ningún competidor puede 
 |----------|-----------------|-----------|
 | **macOS Sandbox** | Accessibility API (igual que VoiceOver) | Código MacUIAutomationService.cs |
 | **EDR/Antivirus** | Firma EV + whitelisting enterprise | Pipeline CI/CD + Azure Trusted Signing |
-| **Latencia real** | 8.3ms medido en hardware real | Logs certificados + ETW traces |
+| **Latencia real** | Pendiente de medicion end-to-end | Benchmarks de componentes individuales disponibles |
 | **Privacidad** | 100% local, cero datos salen | Arquitectura documentada |
 | **Escalabilidad** | Backend no es bottleneck | 200x headroom en QPS |
 | **Código cerrado** | IP protegida + ofuscación | EULA + DotNetObfuscar |

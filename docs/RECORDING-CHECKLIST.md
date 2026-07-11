@@ -148,10 +148,10 @@
 6. [ ] Duración: 15 segundos
 
 ### Grabación - Escena 6: Velocidad (1:30 - 1:45)
-1. [ ] Mostrar comparación de velocidad
-2. [ ] Visual: "8.3ms vs 2,000ms"
-3. [ ] Decir línea: "8 milisegundos. Más rápido que parpadeas"
-4. [ ] Mostrar gráfico o animación de velocidad
+1. [ ] Mostrar que todo es local
+2. [ ] Visual: "100% local vs cloud"
+3. [ ] Decir línea: "Todo corre en tu PC. Sin internet, sin esperas"
+4. [ ] Mostrar tooltip apareciendo al pasar el mouse
 5. [ ] Duración: 15 segundos
 
 ### Grabación - Escena 7: CTA (1:45 - 2:00)

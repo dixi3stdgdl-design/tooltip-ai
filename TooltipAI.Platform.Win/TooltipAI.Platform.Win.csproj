@@ -17,13 +17,11 @@
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.WindowsDesktop.App.WindowsForms" />
-    <Reference Include="UIAutomationClient" />
-    <Reference Include="UIAutomationTypes" />
   </ItemGroup>
 
   <!-- Windows-only files that depend on WinForms/UIA managed assemblies -->
   <ItemGroup>
-    <Compile Remove="Services\WindowsActionExecutor.cs" Condition="!$([MSBuild]::IsOSPlatform('Windows'))" />
+    <Compile Remove="Services\WindowsActionExecutor.cs" />
     <Compile Remove="Rendering\GlassmorphicRenderer.cs" Condition="!$([MSBuild]::IsOSPlatform('Windows'))" />
   </ItemGroup>
 

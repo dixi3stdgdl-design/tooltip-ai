@@ -24,7 +24,6 @@
   <ItemGroup>
     <ProjectReference Include="..\TooltipAI.Core\TooltipAI.Core.csproj" />
     <ProjectReference Include="..\TooltipAI.Backend\TooltipAI.Backend.csproj" />
-    <ProjectReference Include="..\TooltipAI.Platform.Win\TooltipAI.Platform.Win.csproj" Condition="$([MSBuild]::IsOSPlatform('Windows'))" />
   </ItemGroup>
 
   <ItemGroup>

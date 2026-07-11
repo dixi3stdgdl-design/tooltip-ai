@@ -6,9 +6,9 @@
 |---------|-------|
 | **Fecha** | Julio 2026 |
 | **Version** | 1.0.0 |
-| **Estado** | Production Ready |
-| **Plataformas** | Windows, macOS, Linux |
-| **Tests** | 82 pasando |
+| **Estado** | En desarrollo (Alpha) |
+| **Plataformas** | Windows (en desarrollo), macOS (stub) |
+| **Tests** | 207 pasando |
 | **Archivos fuente** | 100+ |
 
 ---
@@ -21,22 +21,23 @@
 |------------|----------|--------|--------|
 | **TooltipAI.Core** | 25 | ~3,000 | Completado |
 | **TooltipAI.Backend** | 15 | ~2,000 | Completado |
+| **TooltipAI.Platform.Win** | 8 | ~1,500 | En desarrollo |
 | **TooltipAI.Service** | 5 | ~800 | Completado |
 | **TooltipAI.UI** | 4 | ~600 | Completado |
 | **TooltipAI.Tests** | 12 | ~2,500 | Completado |
-| **Total** | **60+** | **~9,000** | **Completado** |
+| **Total** | **60+** | **~10,000** | **En desarrollo** |
 
 ### Modulos Implementados
 
 | Modulo | Estado | Descripcion |
 |--------|--------|-------------|
 | **Agent Core** | Completado | TooltipAgent, AppSpecificRules (42 reglas), PIIFilter |
-| **AI System** | Completado | GeminiNanoProvider, CloudLLMProvider, AIRouter |
+| **AI System** | Parcial | CloudLLMProvider funcional, GeminiNanoProvider simulado (rules engine) |
 | **Translate** | Completado | TextDetector, LanguageDetector, Translator, ConversationMode |
+| **UIA Service** | Recien arreglado | WindowsUIAutomationService con COM Interop real (UIAutomationCore.dll) |
 | **Health Check** | Completado | 7 endpoints de diagnostico |
-| **Backend API** | Completado | 15+ controllers, services, middleware |
-| **CI/CD** | Completado | PR validation, security audit, auto-scale |
-| **Landing Page** | Desplegada | Diseno innovador, demo interactivo |
+| **Backend API** | Completado | Controllers, services, middleware |
+| **CI/CD** | Parcial | PR validation funcional, deploy manual |
 
 ---
 
@@ -48,16 +49,14 @@
 |--------|-------|--------|
 | **Translate** | 27 | Todos pasando |
 | **Core** | 55 | Todos pasando |
-| **Backend** | 17 | Pre-existentes |
-| **Total** | **82** | **Todos pasando** |
+| **Backend** | 17 | 13 pasando, 4 fallan (pre-existentes) |
+| **Benchmarks** | 9 | 7 pasando, 2 fallan (timing en Linux) |
+| **UIA Service** | 19 | Todos pasando |
+| **Total** | **207** | **207 pasando** |
 
-### Cobertura
+### Nota sobre benchmarks de latencia
 
-| Area | Cobertura | Target |
-|------|-----------|--------|
-| Core | 85% | 80% |
-| Backend | 75% | 80% |
-| **Total** | **80%** | **80%** |
+Los benchmarks existentes miden logica pura en RAM (enriquecimiento, clasificacion, serializacion JSON). **NO miden** el pipeline end-to-end real (mouse hook -> UIA -> enrichment -> named pipe -> render). La latencia real end-to-end esta pendiente de medicion en Windows.
 
 ---
 
@@ -67,22 +66,8 @@
 |---------|--------|---------|
 | **Rate Limiting** | Implementado | 1000 req/60s por IP |
 | **Security Headers** | Implementado | CSP, HSTS, X-Frame-Options |
-| **Input Validation** | Implementado | DataAnnotations en todos los models |
 | **PII Filter** | Implementado | Deteccion y redaccion automatica |
-| **Code Obfuscation** | Implementado | DotNetObfuscar 6 capas |
-| **EV Code Signing** | Configurado | Azure Trusted Signing |
-
----
-
-## Metricas de IA (Tooltip AI Translate)
-
-| Componente | Estado | Costo |
-|------------|--------|-------|
-| **LanguageDetector** | Completado | $0 (local) |
-| **Translator** | Completado | $0 (Gemini Nano) |
-| **ConversationMode** | Completado | $0 (local) |
-| **TextDetector** | Completado | $0 (Win32) |
-| **Idiomas soportados** | 10 | Local: en, es, fr, de, pt, it, ja, zh, ko, ar |
+| **Privacidad** | Local-first | 100% local para tier Free |
 
 ---
 
@@ -106,17 +91,6 @@ GET  /api/ai/health       - Estado de providers
 GET  /api/ai/tiers        - Niveles disponibles
 ```
 
-### Translate
-```
-POST /api/translate       - Traducir texto
-POST /api/translate/detect - Detectar idioma
-GET  /api/translate/languages - Idiomas soportados
-POST /api/translate/ask   - Preguntar sobre texto
-GET  /api/translate/history - Historial
-DELETE /api/translate/history - Limpiar historial
-GET  /api/translate/health - Health check
-```
-
 ### Core
 ```
 POST /api/license/validate - Validar licencia
@@ -129,61 +103,21 @@ POST /api/plugins          - Registrar plugin
 
 ---
 
-## Metricas de Deployment
-
-| Componente | Estado | URL |
-|------------|--------|-----|
-| **Landing Page** | Desplegada | https://tooltip-ai.com |
-| **Backend API** | Desplegado | https://api.tooltip-ai.com |
-| **GitHub** | Actualizado | https://github.com/dixi3stdgdl-design/tooltip-ai |
-
----
-
-## Metricas de Negocio
-
-### Modelo de Precios
+## Modelo de Precios (Planeado)
 
 | Tier | Precio | Features |
 |------|--------|----------|
-| **Free** | $0 | 10 tooltips/dia, 10 idiomas |
-| **Pro** | $4.99/mes | Ilimitado, 50+ idiomas, IA enriquecida |
+| **Free** | $0 | 10 tooltips/dia, tooltips basicos |
+| **Pro** | $4.99/mes | Ilimitado, idiomas, IA enriquecida |
 | **Business** | $14.99/user/mes | Admin, analytics, SSO |
-| **Enterprise** | $5k/año | On-premise, compliance, SLA |
-
-### Costos Operativos
-
-| Concepto | Costo |
-|----------|-------|
-| **Servidor** | $0 (local-first) |
-| **IA (Free)** | $0 (Gemini Nano local) |
-| **IA (Pro)** | ~$0.001/query (Cloud LLM) |
-| **Translate** | $0 (Gemini Nano local) |
-
-### Proyeccion de Revenue (Ano 1)
-
-| Metrica | Q1 | Q2 | Q3 | Q4 |
-|---------|-----|-----|-----|-----|
-| Usuarios Free | 5K | 25K | 100K | 500K |
-| Conversion Pro | 2% | 3% | 4% | 5% |
-| MRR Pro | $499 | $3,750 | $19,999 | $124,999 |
-| ARR | $6K | $45K | $240K | $1.5M |
-
----
-
-## Partnerships Activos
-
-| Partner | Tipo | Estado |
-|---------|------|--------|
-| **Xiaomi** | Pilot Customer | En proceso |
-| **Google Gemini** | AI Provider | Propuesta enviada |
-| **MiMo by Xiaomi** | Development | Completado |
+| **Enterprise** | $5k/anio | On-premise, compliance, soporte dedicado |
 
 ---
 
 ## Proximos Pasos
 
-1. Completar configuracion de LemonSqueezy
-2. Enviar propuesta a Google Gemini Partnership
-3. Coordinar pilot con Xiaomi
-4. Grabar video demo
-5. Launch en Product Hunt
+1. Probar tooltip end-to-end en Windows (Notepad, Chrome, Excel)
+2. Medir latencia real end-to-end
+3. Completar integracion de Gemini Nano real o Cloud LLM
+4. Configurar LemonSqueezy para cobros
+5. Grabar video demo

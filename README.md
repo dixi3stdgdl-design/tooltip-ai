@@ -1,48 +1,28 @@
 # Tooltip AI
 
-**Tooltips inteligentes para Windows, macOS y Linux. Contexto real-time en cada aplicación.**
+**Tooltips inteligentes para Windows. Contexto real-time en cada aplicacion.**
 
-App de escritorio multiplataforma que detecta el elemento bajo el cursor y muestra información contextual relevante. Powered by UI Automation + Accessibility APIs nativas.
+App de escritorio que detecta el elemento bajo el cursor y muestra informacion contextual relevante. Powered by UI Automation + Accessibility APIs nativas.
 
 ---
 
 ## Plataformas
 
-| Plataforma | Estado | Build |
-|------------|--------|-------|
-| **Windows x64** | Production-ready | `scripts/build-win-x64.sh` |
-| **macOS ARM64** | Beta | `scripts/build-mac-arm64.sh` |
-| **macOS x64** | Beta | `scripts/build-mac-x64.sh` |
-| **Linux** | Planificado | Próximamente |
+| Plataforma | Estado |
+|------------|--------|
+| **Windows x64** | En desarrollo (Alpha) |
+| **macOS** | Stub (pendiente) |
+| **Linux** | No soportado |
 
 ---
 
-## Descargar
-
-[![Windows](https://img.shields.io/badge/Windows-Download-0078D4?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/dixi3stdgdl-design/tooltip-ai/releases)
-[![macOS](https://img.shields.io/badge/macOS-Download-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/dixi3stdgdl-design/tooltip-ai/releases)
-[![Linux](https://img.shields.io/badge/Linux-Coming Soon-FCC624?style=for-the-badge&logo=linux&logoColor=black)](#)
-
----
-
-## Modelo de Negocio
-
-| Tier | Precio | Features |
-|------|--------|----------|
-| **Free** | $0 | 10 tooltips/día, tooltips básicos |
-| **Pro** | $4.99/mes | Ilimitado, 50+ idiomas, IA enriquecida |
-| **Business** | $14.99/user/mes | Admin, analytics, SSO |
-| **Enterprise** | $5k/año | On-premise, compliance, soporte dedicado |
-
----
-
-## Arquitectura Multiplataforma
+## Arquitectura
 
 ```
-┌─────────────────────────────────────────────────┐
-│  TooltipAI.Core (Portable - .NET 8)             │
-│  Modelos + Interfaces + Lógica pura             │
-└───────────────────┬─────────────────────────────┘
+┌─────────────────────────────────────────┐
+│  TooltipAI.Core (Portable - .NET 8)     │
+│  Modelos + Interfaces + Logica pura     │
+└───────────────────┬─────────────────────┘
                     │
         ┌───────────┴───────────┐
         │                       │
@@ -50,33 +30,20 @@ App de escritorio multiplataforma que detecta el elemento bajo el cursor y muest
 │  Platform.Win │     │  Platform.Mac   │
 │  WH_MOUSE_LL  │     │  CGEventTap     │
 │  UI Automation│     │  AXUIElement    │
-│  GDI Render   │     │  NSWindow       │
 └───────────────┘     └─────────────────┘
 ```
 
 ---
 
-## Stack Técnico
+## Stack Tecnico
 
-| Componente | Windows | macOS | Linux |
-|------------|---------|-------|-------|
-| **Mouse Hook** | WH_MOUSE_LL | CGEventTap | AT-SPI |
-| **UI Extraction** | IUIAutomation | AXUIElement | AT-SPI2 |
-| **Render** | Win32 GDI | NSWindow + Core Text | GTK |
-| **IPC** | Named Pipe | Unix Domain Socket | Unix Socket |
-| **Backend** | Azure Linux 4 | Azure Linux 4 | Azure Linux 4 |
-
----
-
-## Métricas
-
-| Métrica | Valor |
-|---------|-------|
-| **Latencia pipeline** | 8.3ms (P95: 9.7ms) |
-| **CPU idle** | 0.08% |
-| **RAM** | 47MB estático |
-| **Tests** | 108 (100% passing) |
-| **Archivos fuente** | 77 |
+| Componente | Windows |
+|------------|---------|
+| **Mouse Hook** | WH_MOUSE_LL (P/Invoke) |
+| **UI Extraction** | IUIAutomation via COM Interop |
+| **Render** | WinUI 3 (click-through overlay) |
+| **IPC** | Named Pipe |
+| **Backend** | ASP.NET Core |
 
 ---
 
@@ -87,36 +54,41 @@ App de escritorio multiplataforma que detecta el elemento bajo el cursor y muest
 git clone https://github.com/dixi3stdgdl-design/tooltip-ai.git
 cd tooltip-ai
 
-# Ejecutar script de prueba completo
-.\scripts\test-windows.ps1
+# Build individual projects (no macOS workload needed):
+dotnet build TooltipAI.Core\TooltipAI.Core.csproj -c Release
+dotnet build TooltipAI.Platform.Win\TooltipAI.Platform.Win.csproj -c Release
+dotnet build TooltipAI.Service\TooltipAI.Service.csproj -c Release
+dotnet build TooltipAI.Tray\TooltipAI.Tray.csproj -c Release
+dotnet build TooltipAI.UI\TooltipAI.UI.csproj -c Release
 
-# O manualmente:
-dotnet restore
-dotnet build -c Release
-dotnet test TooltipAI.Tests\TooltipAI.Tests.csproj
-
-# Ejecutar backend
-dotnet run --project TooltipAI.Backend
-```
-
-### macOS
-```bash
-git clone https://github.com/dixi3stdgdl-design/tooltip-ai.git
-cd tooltip-ai
-./scripts/build-mac-arm64.sh  # Apple Silicon
-# o
-./scripts/build-mac-x64.sh   # Intel
+# Run
+dotnet run --project TooltipAI.Tray -c Release
+# In another terminal:
+dotnet run --project TooltipAI.UI -c Release
 ```
 
 ---
 
-## Seguridad
+## Que hace
 
-- **TooltipAI.Core** — Cerrado, ofuscado, anti-reverse-engineering
-- **Backend** — Azure Linux 4 distroless, non-root, read-only
-- **CI/CD** — DotNetObfuscar + SHA-256 + EV code signing
-- **Privacidad** — 100% local, cero datos salen del equipo
-- **Cumplimiento** — GDPR, CCPA, HIPAA, PCI-DSS, SOX
+Cuando pasas el mouse sobre un elemento de cualquier app:
+1. Captura el elemento bajo el cursor via UI Automation
+2. Identifica tipo de control (Button, Edit, Slider, etc.)
+3. Genera contexto enriquecido (hints, shortcuts, tips)
+4. Muestra tooltip glassmorphic click-through junto al cursor
+
+---
+
+## Estado actual
+
+- Mouse hook funcional (WH_MOUSE_LL)
+- UIA service recien arreglado (COM Interop real)
+- Named pipe IPC funcional
+- WinUI 3 overlay funcional
+- Backend API funcional (licencias, contexto, plugins)
+- Tests: 207 pasando
+
+**Pendiente**: probar end-to-end en Windows, medir latencia real, integrar AI real.
 
 ---
 

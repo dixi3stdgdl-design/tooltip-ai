@@ -30,8 +30,8 @@
 
 ## Escena 6: Velocidad (1:30 - 1:45)
 **Visual:** Comparacion de velocidad
-**Texto:** "8.3ms vs 2,000ms"
-**Audio:** "8 milisegundos. Mas rapido que parpadeas"
+**Texto:** "100% local vs cloud"
+**Audio:** "Todo local. Sin internet, sin latencia de red"
 
 ## Escena 7: CTA (1:45 - 2:00)
 **Visual:** Landing page con boton de descarga
