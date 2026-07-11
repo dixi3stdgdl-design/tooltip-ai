@@ -14,6 +14,7 @@ public class NamedPipeClient : IDisposable
 
     public event Action<TooltipData>? DataReceived;
     public event Action? Disconnected;
+    public event Action<string>? StatusChanged;
     public bool IsConnected => _pipe?.IsConnected == true;
 
     public async Task ConnectAsync(CancellationToken ct)
