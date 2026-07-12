@@ -28,7 +28,7 @@ public class NamedPipeService : IDisposable
                 server = new NamedPipeServerStream(
                     PipeName,
                     PipeDirection.InOut,
-                    1,
+                    4, // Allow up to 4 simultaneous clients
                     PipeTransmissionMode.Byte,
                     PipeOptions.Asynchronous);
 

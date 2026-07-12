@@ -191,70 +191,103 @@ public class OverlayForm : Form
 
         var rect = new Rectangle(0, 0, Width - 1, Height - 1);
 
-        // --- BACKGROUND: translucent dark glass ---
-        using (var bgPath = RoundedRect(rect, 14))
-        using (var bgBrush = new SolidBrush(Color.FromArgb(22, 22, 28))) // Very translucent
+        // --- BACKGROUND: glassmorphic gradient ---
+        using (var bgPath = RoundedRect(rect, 16))
+        {
+            using var bgBrush = new LinearGradientBrush(
+                new System.Drawing.Point(0, 0),
+                new System.Drawing.Point(0, Height),
+                Color.FromArgb(28, 28, 35),
+                Color.FromArgb(18, 18, 24));
             g.FillPath(bgBrush, bgPath);
+        }
 
-        // --- BORDER: subtle accent glow ---
-        using (var borderPath = RoundedRect(rect, 14))
-        using (var borderPen = new Pen(Color.FromArgb(50, accent.R, accent.G, accent.B), 1.5f))
+        // --- INNER HIGHLIGHT (top edge light reflection) ---
+        using (var highlightPath = RoundedRect(new Rectangle(1, 1, Width - 3, Height / 3), 16))
+        using (var highlightBrush = new LinearGradientBrush(
+            new System.Drawing.Point(0, 0),
+            new System.Drawing.Point(0, Height / 3),
+            Color.FromArgb(15, 255, 255, 255),
+            Color.FromArgb(0, 255, 255, 255)))
+            g.FillPath(highlightBrush, highlightPath);
+
+        // --- BORDER: accent glow ---
+        using (var borderPath = RoundedRect(rect, 16))
+        using (var borderPen = new Pen(Color.FromArgb(60, accent.R, accent.G, accent.B), 1.2f))
             g.DrawPath(borderPen, borderPath);
 
         // --- OUTER GLOW ---
-        using (var glowPath = RoundedRect(new Rectangle(-1, -1, Width + 1, Height + 1), 15))
-        using (var glowPen = new Pen(Color.FromArgb(20, accent.R, accent.G, accent.B), 1f))
+        using (var glowPath = RoundedRect(new Rectangle(-2, -2, Width + 3, Height + 3), 18))
+        using (var glowPen = new Pen(Color.FromArgb(15, accent.R, accent.G, accent.B), 1.5f))
             g.DrawPath(glowPen, glowPath);
 
-        int y = 14;
-        int pad = 16;
+        int y = 16;
+        int pad = 18;
 
         // --- CATEGORY BADGE ---
-        using (var badgeFont = new Font("Segoe UI Semibold", 7.5f))
+        using (var badgeFont = new Font("Segoe UI Semibold", 7f))
         {
             var label = theme.CategoryLabel;
             var sz = g.MeasureString(label, badgeFont);
-            using (var badgeBg = new SolidBrush(Color.FromArgb(35, accent.R, accent.G, accent.B)))
-            using (var badgePath = RoundedRect(new Rectangle(pad, y, (int)sz.Width + 10, (int)sz.Height + 4), 4))
+            using (var badgeBg = new SolidBrush(Color.FromArgb(30, accent.R, accent.G, accent.B)))
+            using (var badgePath = RoundedRect(new Rectangle(pad, y, (int)sz.Width + 12, (int)sz.Height + 4), 4))
                 g.FillPath(badgeBg, badgePath);
-            using (var badgeFg = new SolidBrush(accent))
-                g.DrawString(label, badgeFont, badgeFg, pad + 5, y + 2);
-            y += (int)sz.Height + 10;
+            using (var badgeFg = new SolidBrush(Color.FromArgb(220, accent.R, accent.G, accent.B)))
+                g.DrawString(label, badgeFont, badgeFg, pad + 6, y + 2);
+            y += (int)sz.Height + 12;
         }
 
         // --- WINDOW TITLE ---
-        using (var titleFont = new Font("Segoe UI Semibold", 9.5f))
+        using (var titleFont = new Font("Segoe UI Semibold", 10f))
         {
             var title = data.ProcessName ?? "Unknown";
             if (!string.IsNullOrEmpty(data.WindowTitle))
                 title += $" — {data.WindowTitle}";
-            if (title.Length > 45) title = title[..42] + "...";
-            g.DrawString(title, titleFont, Brushes.White, pad, y);
-            y += (int)g.MeasureString(title, titleFont).Height + 6;
+            if (title.Length > 42) title = title[..39] + "...";
+            using (var titleBrush = new SolidBrush(Color.FromArgb(240, 240, 245)))
+                g.DrawString(title, titleFont, titleBrush, pad, y);
+            y += (int)g.MeasureString(title, titleFont).Height + 8;
         }
 
         // --- SEPARATOR ---
-        using (var sepPen = new Pen(Color.FromArgb(30, accent.R, accent.G, accent.B), 0.5f))
+        using (var sepPen = new Pen(Color.FromArgb(25, accent.R, accent.G, accent.B), 0.5f))
             g.DrawLine(sepPen, pad, y, Width - pad, y);
-        y += 8;
+        y += 10;
 
         // --- ELEMENT INFO ---
         if (data.Element != null)
         {
-            using (var infoFont = new Font("Segoe UI", 8.5f))
-            using (var infoBrush = new SolidBrush(Color.FromArgb(160, 160, 170)))
+            using (var typeFont = new Font("Segoe UI Semibold", 9f))
+            using (var detailFont = new Font("Segoe UI", 8f))
             {
-                var info = $"{data.Element.ControlType}";
-                if (!string.IsNullOrEmpty(data.Element.Name) && data.Element.Name != "Unknown")
-                    info += $"  ·  {data.Element.Name}";
-                g.DrawString(info, infoFont, infoBrush, pad, y);
-                y += (int)g.MeasureString(info, infoFont, Width - pad * 2).Height + 2;
+                // Control type (prominent)
+                var typeText = data.Element.ControlType ?? "Unknown";
+                using (var typeBrush = new SolidBrush(accent))
+                    g.DrawString(typeText, typeFont, typeBrush, pad, y);
+                y += (int)g.MeasureString(typeText, typeFont).Height + 4;
 
-                if (!string.IsNullOrEmpty(data.Element.ClassName))
+                // Element name
+                if (!string.IsNullOrEmpty(data.Element.Name) && data.Element.Name != "Unknown")
                 {
-                    var cls = $"Class: {data.Element.ClassName}";
-                    g.DrawString(cls, infoFont, new SolidBrush(Color.FromArgb(100, 100, 110)), pad, y);
-                    y += (int)g.MeasureString(cls, infoFont).Height + 6;
+                    var nameText = data.Element.Name;
+                    if (nameText.Length > 40) nameText = nameText[..37] + "...";
+                    using (var nameBrush = new SolidBrush(Color.FromArgb(180, 180, 190)))
+                        g.DrawString(nameText, detailFont, nameBrush, pad, y);
+                    y += (int)g.MeasureString(nameText, detailFont).Height + 3;
+                }
+
+                // Class + status
+                var statusParts = new List<string>();
+                if (!string.IsNullOrEmpty(data.Element.ClassName))
+                    statusParts.Add(data.Element.ClassName);
+                if (data.Element.IsEnabled) statusParts.Add("Enabled");
+                if (data.Element.IsKeyboardFocusable) statusParts.Add("Focusable");
+                if (statusParts.Count > 0)
+                {
+                    var statusText = string.Join("  ·  ", statusParts);
+                    using (var statusBrush = new SolidBrush(Color.FromArgb(90, 90, 100)))
+                        g.DrawString(statusText, detailFont, statusBrush, pad, y);
+                    y += (int)g.MeasureString(statusText, detailFont).Height + 8;
                 }
             }
         }
@@ -266,14 +299,14 @@ public class OverlayForm : Form
         y = DrawHint(g, y, pad, "DATOS", data.DataInsight, Color.FromArgb(255, 107, 107));
 
         // --- AI CONTEXT ---
-        if (!string.IsNullOrEmpty(data.AiContext))
+        if (!string.IsNullOrEmpty(data.AiContext) && y < Height - 30)
         {
-            y += 2;
-            using (var ctxFont = new Font("Segoe UI", 8f))
-            using (var ctxBrush = new SolidBrush(Color.FromArgb(90, 90, 100)))
+            y += 4;
+            using (var ctxFont = new Font("Segoe UI", 7.5f))
+            using (var ctxBrush = new SolidBrush(Color.FromArgb(80, 80, 90)))
             {
                 var ctx = data.AiContext;
-                if (ctx.Length > 70) ctx = ctx[..67] + "...";
+                if (ctx.Length > 65) ctx = ctx[..62] + "...";
                 g.DrawString(ctx, ctxFont, ctxBrush, pad, y);
             }
         }
